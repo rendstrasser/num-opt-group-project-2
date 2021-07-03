@@ -1,5 +1,5 @@
 import numpy as np
-from shared.classes import MinimizationProblem
+from shared.classes import MinimizationProblem, Constraint
 
 
 def create_example_18_3_problem():
@@ -20,6 +20,6 @@ def create_example_18_3_problem():
     
     x0 = np.array((-1.71, 1.59, 1.82, -0.763, -0.763))
     solution = np.array((-1.8, 1.7, 1.9, -0.8, -0.8))
-    constraints = np.array((c1, c2, c3))
+    constraints = np.array((Constraint(c1, True), Constraint(c2, True), Constraint(c3, True)))
 
     return MinimizationProblem(f=f, constraints=constraints, solution=solution, x0=x0)

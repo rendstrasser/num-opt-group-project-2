@@ -2,6 +2,12 @@ import numpy as np
 from typing import Callable
 from dataclasses import dataclass
 
+
+@dataclass
+class Constraint: 
+    c: Callable[[np.ndarray], np.ndarray]
+    equality: True # if false, then inequality
+
 @dataclass
 class MinimizationProblem:
     """
@@ -16,7 +22,7 @@ class MinimizationProblem:
         x0 (list): The starting point for the minimization procedure.
     """
     f: Callable[[np.ndarray], np.ndarray]
-    constraints: np.ndarray # of Callables
+    constraints: np.ndarray # of Constraints
     solution: np.ndarray
     x0: np.ndarray
 
@@ -28,20 +34,26 @@ class MinimizationProblem:
     def calc_gradient_at(self, x: np.ndarray) -> np.ndarray:
         return self._central_difference_gradient(self.f, x)
 
-    def calc_hessian_at(self,x: np.ndarray) -> np.ndarray:
+    def calc_hessian_at(self, x: np.ndarray) -> np.ndarray:
         return self.hessian_approximation(self.f, x)
 
     # --- Constraint methods ---
 
-    def calc_constraint_at(self, i: int, x: np.ndarray) -> float: 
-        return self.constraints[i](x)
+    def calc_constraints_at(self, x: np.ndarray) -> np.ndarray: 
+        return np.array([c.c(x) for c in self.constraints])
 
-    def calc_constraint_gradient_at(self, i: int, x: np.ndarray):
-        return self._central_difference_gradient(self.constraints[i], x)
+    def calc_constraint_at(self, i: int, x: np.ndarray) -> float: 
+        return self.constraints[i].c(x)
+
+    def calc_constraints_jacobian_at(self, x: np.ndarray) -> np.ndarray:
+        return np.array([self._central_difference_gradient(c.c, x) for c in self.constraints])
+
+    def calc_constraint_gradient_at(self, i: int, x: np.ndarray) -> np.ndarray:
+        return self._central_difference_gradient(self.constraints[i].c, x)
 
     # --- Lagrangian methods ---
 
-    def calc_lagrangian_at(self, x, l):
+    def calc_lagrangian_at(self, x, l) -> float:
         assert len(l) == len(self.constraints)
 
         result = self.calc_f_at(x)
@@ -52,14 +64,14 @@ class MinimizationProblem:
         return result
     
     # gradient wrt x
-    def calc_lagrangian_gradient_at(self, x, l):
+    def calc_lagrangian_gradient_at(self, x, l) -> np.ndarray:
         def lagrangian(x):
             return self.calc_lagrangian_at(x, l)
 
         return self._central_difference_gradient(lagrangian, x)
 
     # hessian wrt x
-    def calc_lagrangian_hessian_at(self, x, l):
+    def calc_lagrangian_hessian_at(self, x, l) -> np.ndarray:
         def lagrangian(x):
             return self.calc_lagrangian_at(x, l)
 
