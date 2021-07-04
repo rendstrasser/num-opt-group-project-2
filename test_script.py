@@ -16,7 +16,8 @@ def test_combined_params_linear():
     b = np.array([2, 3])
 
     sp = LinearProblem(
-        c = np.array([2, 5]),
+        c=np.array([2, 5]),
+        n=2,
         constraints=[
             LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), is_equality=True),
             LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), is_equality=True),
@@ -40,8 +41,9 @@ def test_combined_params_quadratic():
     b = np.array([2, 3])
 
     qp = QuadraticProblem(
-        G = np.array([[2, 5], [5, 2]]),
-        c = np.array([1, 2]),
+        G=np.array([[2, 5], [5, 2]]),
+        c=np.array([1, 2]),
+        n=2,
         constraints=[
             LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), is_equality=True),
             LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), is_equality=True),

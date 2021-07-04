@@ -1,9 +1,6 @@
-from dataclasses import dataclass
-from typing import Callable, List, Sequence
+from typing import Callable
 
 import numpy as np
-
-from shared.constraints import Constraint
 
 def gradient_approximation(f: Callable, x: np.ndarray) -> np.ndarray:
     """Approximate gradient as described in equation (8.7), called the 'central difference formula'.

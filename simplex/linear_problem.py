@@ -8,14 +8,17 @@ from typing import Sequence, Callable
 import numpy as np
 
 from shared.constraints import LinearConstraint, combine_linear
-from shared.minimization_problem import MinimizationProblem
+from shared.minimization_problem import LinearConstraintsProblem
 
 
 @dataclass
-class LinearProblem(MinimizationProblem):
+class LinearProblem(LinearConstraintsProblem):
+    """
+    Linear problem as described in the book at 13.1.
+    Constraints don't explicitly contain the x >= 0 case.
+    """
     f: Callable[[np.ndarray], float] = field(init=False)
     c: np.ndarray
-    constraints: Sequence[LinearConstraint]
     A: np.ndarray = field(init=False)
     b: np.ndarray = field(init=False)
     bias: float = 0

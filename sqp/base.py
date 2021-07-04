@@ -115,7 +115,7 @@ def create_iterate_quadratic_problem(
         L_hessian: np.ndarray):
 
     constraints = np.array([transform_sqp_to_linear_constraint(constraint, c_i, c_i_grad) for constraint, c_i, c_i_grad in zip(problem.constraints, c, A)])
-    return QuadraticProblem(G=L_hessian, c=f_grad, bias=f_x, constraints=constraints, x0=None, solution=None)
+    return QuadraticProblem(G=L_hessian, c=f_grad, n=len(f_grad), bias=f_x, constraints=constraints, x0=None, solution=None)
 
 # should be done if meant that way?
 def kkt_fulfilled(
