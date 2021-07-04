@@ -110,7 +110,7 @@ class MinimizationProblem:
             [self._hess_approx_num(f, x, eps_i, eps_j) for eps_i in eps_vectors]
             for eps_j in eps_vectors
         ]) / (eps**2)
-        
+
 
         # If the hessian approximation is basically 0, we are already close.
         # Avoids SingularMatrix errors.
@@ -118,7 +118,7 @@ class MinimizationProblem:
             return np.eye(len(x))
 
         return hess
-        
+
     @staticmethod
     def _hess_approx_num(f: Callable, x: np.ndarray, eps_i: np.ndarray, eps_j: np.ndarray) -> float:
         return f(x + eps_i + eps_j) - f(x + eps_i) - f(x + eps_j) + f(x)
