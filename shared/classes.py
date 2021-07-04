@@ -16,14 +16,14 @@ class MinimizationProblem:
 
     Args:
         f (Callable): The function (objective) we are trying to minimize.
-        constraints (list): List of constraints functions for the minimization problem.
-        solution (list): The solution(s) to the minimization problem.
-                             Might contain multiple if there are multiple local minimizers.
-        x0 (list): The starting point for the minimization procedure.
+        constraints (Sequence[Constraint]): Sequence of constraints.
+        solutions (Sequence[np.ndarray]): The solutions(s) to the minimization problem.
+                                         Might contain multiple if there are multiple local minimizers.
+        x0 (np.ndarray): The starting point for the minimization procedure.
     """
     f: Callable[[np.ndarray], np.ndarray]
-    constraints: np.ndarray # of Constraints
-    solution: np.ndarray
+    constraints: Sequence[Constraint]
+    solutions: Sequence[np.ndarray]
     x0: np.ndarray
 
     # --- Objective function methods ---
