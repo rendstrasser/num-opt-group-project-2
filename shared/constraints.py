@@ -27,7 +27,6 @@ class Constraint:
         """
         return self(x) == 0
 
-
 @dataclass
 class LinearCallable:
     """Specific callable to keep a and b accessible."""
@@ -40,7 +39,6 @@ class LinearCallable:
 @dataclass
 class LinearConstraint(Constraint):
     c: LinearCallable
-
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:
     """Combine attributes of linear callables into matrix A and vector b.
