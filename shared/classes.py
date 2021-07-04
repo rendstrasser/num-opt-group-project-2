@@ -114,7 +114,7 @@ class MinimizationProblem:
 
         # If the hessian approximation is basically 0, we are already close.
         # Avoids SingularMatrix errors.
-        if sum(abs(x) for row in hess for x in row) < 0.0001: 
+        if sum(abs(entry) for row in hess for entry in row) < 0.0001:
             return np.eye(len(x))
 
         return hess
