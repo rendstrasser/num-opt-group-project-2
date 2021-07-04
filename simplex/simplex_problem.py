@@ -2,27 +2,21 @@
 SimplexProblem and relevant functions.
 """
 
-from dataclasses import dataclass
-from typing import Sequence
+from dataclasses import dataclass, field
+from typing import Sequence, Callable
 
 import numpy as np
 
-from shared.constraints import SimplexConstraint
+from shared.constraints import LinearConstraint, combine_linear
 from shared.minimization_problem import MinimizationProblem
 
 
 @dataclass
-class SimplexCallable:
-    """Specific callable to SimplexProblem. Keeps A and b accessible."""
-    A: np.ndarray
-    b: np.ndarray
-
-    def __call__(self, x: np.ndarray) -> np.ndarray:
-        return self.A @ x + self.b
-
-
-@dataclass
 class SimplexProblem(MinimizationProblem):
-    constraints: Sequence[SimplexConstraint]
+    f: Callable[[np.ndarray], np.ndarray] = field(init=False)
+    constraints: Sequence[LinearConstraint]
+    c: np.ndarray
 
-    # Methods
+    def __post_init__(self):
+        self.f = lambda x: np.inner(self.c, x)
+        self.A, self.b = combine_linear([constraint.c for constraint in self.constraints])
