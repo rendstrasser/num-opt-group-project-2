@@ -3,7 +3,7 @@ File containing Implementations of basic constraints and their methods.
 """
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Sequence, Tuple
 
 import numpy as np
 
