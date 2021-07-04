@@ -15,6 +15,8 @@ from shared.minimization_problem import MinimizationProblem
 class SimplexProblem(MinimizationProblem):
     f: Callable[[np.ndarray], np.ndarray] = field(init=False)
     constraints: Sequence[LinearConstraint]
+    A: np.ndarray = field(init=False)
+    b: np.ndarray = field(init=False)
     c: np.ndarray
 
     def __post_init__(self):
