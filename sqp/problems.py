@@ -31,4 +31,4 @@ def create_example_18_3_problem():
                             Constraint(c2, is_equality=True),
                             Constraint(c3, is_equality=True)))
 
-    return MinimizationProblem(f=f, constraints=constraints, solutions=solution, x0=x0)
+    return MinimizationProblem(f=f, constraints=constraints, solution=solution, x0=x0)
