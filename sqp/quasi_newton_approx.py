@@ -1,6 +1,6 @@
 import numpy as np
 
-# TODO in main code, such that we can use one of these functions:
+# TODO in sqp.ipynb code, such that we can use one of these functions:
 # - need to store previous x
 # - initialize B with np.eye() for the first iteration
 
