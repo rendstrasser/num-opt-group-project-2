@@ -30,7 +30,7 @@ class Constraint:
 
 @dataclass
 class LinearCallable:
-    """Specific callable to SimplexProblem. Keeps A and b accessible."""
+    """Specific callable to keep A and b accessible."""
     a: np.ndarray
     b: float
 
