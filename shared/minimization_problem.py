@@ -50,7 +50,7 @@ class MinimizationProblem:
     def calc_constraints_at(self, x: np.ndarray) -> np.ndarray:
         return np.array([c(x) for c in self.constraints])
 
-    def calc_constraint_at(self, i: int, x: np.ndarray) -> np.ndarray:
+    def calc_constraint_at(self, i: int, x: np.ndarray) -> float:
         return self.constraints[i](x)
 
     def calc_constraints_jacobian_at(self, x: np.ndarray) -> np.ndarray:
