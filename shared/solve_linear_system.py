@@ -1,24 +1,24 @@
 import numpy as np
 
-def cholesky_factorization(H):
+def cholesky_factorization(A):
     """
     factorizes input matrix in lower triangular matrix
-    :param H: has to me a square matrix
+    :param A: has to me a square matrix
     :return: lower triangular matrix
     """
-    assert H.shape[0] == H.shape[1]
+    assert A.shape[0] == A.shape[1]
 
-    N = H.shape[1]
+    N = A.shape[1]
 
-    L = np.zeros_like(H, dtype=np.float64)
+    L = np.zeros_like(A, dtype=np.float64)
 
     for i in range(N):
         for j in range(i+1):
             s = np.dot(L[i, :j], L[j, :j])
             if i == j:
-                L[i, j] = np.sqrt(np.max(H[i, i] - s, 0))
+                L[i, j] = np.sqrt(np.max(A[i, i] - s, 0))
             else:
-                L[i, j] = (1 / L[j, j]) * (H[i, j] - s)
+                L[i, j] = (1 / L[j, j]) * (A[i, j] - s)
 
 
     return L
@@ -43,14 +43,14 @@ def backward(Lt, y):
     return x
 
 
-def solve(H, b):
+def solve(A, b):
     """
-    solves Hx = b without computing the inverse of H but uses forward/backward substitution and cholesky factorization
-    :param H: square matrix
+    solves Ax = b without computing the inverse of A but uses forward/backward substitution and cholesky factorization
+    :param A: square matrix
     :param b: solution to linear system
     :return: x (np.array with shape n x 1)
     """
-    L = cholesky_factorization(H)
+    L = cholesky_factorization(A)
     y = forward(L, b)
     solution = backward(L.T, y)
 
