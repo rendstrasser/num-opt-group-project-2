@@ -1,12 +1,28 @@
 import numpy as np
-from typing import Callable
+from typing import Callable, Sequence
 from dataclasses import dataclass
 
 
 @dataclass
 class Constraint: 
     c: Callable[[np.ndarray], np.ndarray]
-    equality: True # if false, then inequality
+
+    def is_active(self, x: np.ndarray) -> bool:
+        """Check whether the constraint is active at point x, i.e. if c(x) == 0.
+
+        Args:
+            x: Point to evaluate the constraint at.
+        """
+        return self.c(x) == 0
+
+
+class Inequality(Constraint):
+    def __call__(self, x: np.ndarray) -> bool: return self.c(x) <= 0
+
+
+class Equality(Constraint):
+    def __call__(self, x: np.ndarray) -> bool: return self.c(x) == 0
+
 
 @dataclass
 class MinimizationProblem:
