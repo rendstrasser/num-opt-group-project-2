@@ -119,10 +119,12 @@ class MinimizationProblem:
 
         return hess
         
-    def _hess_approx_num(self, f: Callable, x: np.ndarray, eps_i: np.ndarray, eps_j: np.ndarray) -> float:
+    @staticmethod
+    def _hess_approx_num(f: Callable, x: np.ndarray, eps_i: np.ndarray, eps_j: np.ndarray) -> float:
         return f(x + eps_i + eps_j) - f(x + eps_i) - f(x + eps_j) + f(x)
 
-    def _find_epsilon(self, x: np.ndarray):
+    @staticmethod
+    def _find_epsilon(x: np.ndarray):
         """Find computational error of the datatype of x and return it's square-root, as in equation (8.6).
 
         Args:
