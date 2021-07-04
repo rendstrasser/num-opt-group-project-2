@@ -31,5 +31,21 @@ class Constraint:
 
 
 @dataclass
-class SimplexConstraint(Constraint):
-    c: SimplexCallable
+class LinearCallable:
+    """Specific callable to SimplexProblem. Keeps A and b accessible."""
+    a: np.ndarray
+    b: float
+
+    def __call__(self, x: np.ndarray) -> float:
+        return self.a @ x - self.b
+
+@dataclass
+class LinearConstraint(Constraint):
+    c: LinearCallable
+
+
+def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:
+    """Combine attributes of linear callables into matrix A and vector b.
+
+    Args:
+        linear_callables (Sequence[LinearCallable]): List of linear callables.
