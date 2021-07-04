@@ -3,7 +3,7 @@ import numpy as np
 
 from shared import constraints
 from shared.constraints import *
-from simplex.simplex_problem import *
+from simplex.linear_problem import *
 from quadratic.quadratic_problem import *
 
 def test_combined_params_linear():
@@ -15,7 +15,7 @@ def test_combined_params_linear():
 
     b = np.array([2, 3])
 
-    sp = SimplexProblem(
+    sp = LinearProblem(
         c = np.array([2, 5]),
         constraints=[
             LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), is_equality=True),
