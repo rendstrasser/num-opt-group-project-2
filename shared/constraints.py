@@ -7,8 +7,6 @@ from typing import Callable, Sequence, Tuple
 
 import numpy as np
 
-from simplex.simplex_problem import SimplexCallable
-
 
 @dataclass
 class Constraint:
@@ -49,3 +47,10 @@ def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarr
 
     Args:
         linear_callables (Sequence[LinearCallable]): List of linear callables.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: A and b.
+    """
+    A = np.array([c.a for c in linear_callables])
+    b = np.array([c.b for c in linear_callables])
+    return A, b
