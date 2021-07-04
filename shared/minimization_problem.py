@@ -1,14 +1,12 @@
 """
 MinimizationProblem, relevant functions and implemented methods.
 """
-
 from dataclasses import dataclass
-from typing import Callable, Sequence, List
+from typing import Callable, List, Sequence
 
 import numpy as np
 
 from shared.constraints import Constraint
-
 
 @dataclass
 class MinimizationProblem:
