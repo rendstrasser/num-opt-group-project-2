@@ -2,6 +2,7 @@ from typing import Callable
 
 import numpy as np
 
+
 def gradient_approximation(f: Callable, x: np.ndarray) -> np.ndarray:
     """Approximate gradient as described in equation (8.7), called the 'central difference formula'.
 
@@ -16,6 +17,7 @@ def gradient_approximation(f: Callable, x: np.ndarray) -> np.ndarray:
     return np.array([
         (f(x + eps_vector) - f(x - eps_vector)) / (2 * eps) for eps_vector in eps_vectors
     ])
+
 
 def hessian_approximation(f: Callable, x: np.ndarray) -> np.ndarray:
     """Approximate Hessian based on equation (8.21) in the book.
@@ -42,8 +44,10 @@ def hessian_approximation(f: Callable, x: np.ndarray) -> np.ndarray:
 
     return hess
 
+
 def _hess_approx_num(f: Callable, x: np.ndarray, eps_i: np.ndarray, eps_j: np.ndarray) -> float:
     return f(x + eps_i + eps_j) - f(x + eps_i) - f(x + eps_j) + f(x)
+
 
 def _find_epsilon(x: np.ndarray):
     """Find computational error of the datatype of x and return it's square-root, as in equation (8.6).

@@ -22,8 +22,8 @@ def test_combined_params_linear():
             LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), is_equality=True),
             LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), is_equality=True),
         ],
-        x0='whatever',
-        solution=[]
+        x0=None,
+        solution=None
     )
 
     assert np.all(sp.A == A)

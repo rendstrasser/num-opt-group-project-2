@@ -10,6 +10,7 @@ import numpy as np
 from shared.constraints import Constraint, LinearConstraint
 from shared.gradient_approximation import gradient_approximation, hessian_approximation
 
+
 @dataclass
 class MinimizationProblem:
     """
@@ -43,10 +44,10 @@ class MinimizationProblem:
         return self.f(x)
 
     def calc_gradient_at(self, x: np.ndarray) -> np.ndarray:
-        return self._central_difference_gradient(self.f, x)
+        return gradient_approximation(self.f, x)
 
     def calc_hessian_at(self, x: np.ndarray) -> np.ndarray:
-        return self.hessian_approximation(self.f, x)
+        return hessian_approximation(self.f, x)
 
     # --- Constraint methods ---
 
@@ -89,6 +90,7 @@ class MinimizationProblem:
             return self.calc_lagrangian_at(x_, lambda_)
 
         return hessian_approximation(lagrangian, x)
+
 
 @dataclass
 class LinearConstraintsProblem(MinimizationProblem):

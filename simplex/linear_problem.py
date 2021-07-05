@@ -7,7 +7,7 @@ from typing import Sequence, Callable
 
 import numpy as np
 
-from shared.constraints import LinearConstraint, combine_linear
+from shared.constraints import LinearConstraint, combine_linear, LinearCallable
 from shared.minimization_problem import LinearConstraintsProblem
 
 
@@ -26,3 +26,31 @@ class LinearProblem(LinearConstraintsProblem):
     def __post_init__(self):
         self.f = lambda x: self.c @ x + self.bias
         self.A, self.b = combine_linear([constraint.c for constraint in self.constraints])
+
+    @classmethod
+    def phase_I_problem_from(cls, problem: LinearConstraintsProblem):
+        n = problem.n
+        m = len(problem.constraints)
+
+        e_x = np.zeros(shape=n)
+        e_z = np.ones(shape=m)
+        e = np.concatenate((e_x, e_z))
+
+        x0 = np.zeros(n)
+        z0 = np.abs(problem.b)
+        xz0 = np.concatenate((x0, z0))
+
+        constraints = []
+        for i, constraint in enumerate(problem.constraints):
+            E_i = np.eye(m)[i]
+            if problem.b[i] < 0:
+                E_i = -E_i
+
+            A_i = problem.a
+            a = np.concatenate(A_i, E_i)
+
+            constraints.append(LinearConstraint(
+                c=LinearCallable(a=a, b=constraint.b),
+                is_equality=constraint.is_equality))
+
+        return LinearProblem(c=e, constraints=constraints, x0=xz0)
