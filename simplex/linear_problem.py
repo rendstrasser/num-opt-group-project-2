@@ -53,4 +53,4 @@ class LinearProblem(LinearConstraintsProblem):
                 c=LinearCallable(a=a, b=constraint.b),
                 is_equality=constraint.is_equality))
 
-        return LinearProblem(c=e, constraints=constraints, x0=xz0)
+        return cls(c=e, constraints=constraints, x0=xz0)
