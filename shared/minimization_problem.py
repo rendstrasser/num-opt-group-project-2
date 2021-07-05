@@ -2,12 +2,12 @@
 MinimizationProblem, relevant functions and implemented methods.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, List, Sequence
 
 import numpy as np
 
-from shared.constraints import Constraint, LinearConstraint
+from shared.constraints import Constraint, LinearConstraint, combine_linear
 from shared.gradient_approximation import gradient_approximation, hessian_approximation
 
 
@@ -101,3 +101,8 @@ class LinearConstraintsProblem(MinimizationProblem):
     Holds linar constraints in the form of Ax=b
     """
     constraints: Sequence[LinearConstraint]
+    A: np.ndarray = field(init=False)
+    b: np.ndarray = field(init=False)
+
+    def __post_init__(self):
+        self.A, self.b = combine_linear([constraint.c for constraint in self.constraints])

@@ -19,13 +19,10 @@ class LinearProblem(LinearConstraintsProblem):
     """
     f: Callable[[np.ndarray], float] = field(init=False)
     c: np.ndarray
-    A: np.ndarray = field(init=False)
-    b: np.ndarray = field(init=False)
     bias: float = 0
 
     def __post_init__(self):
         self.f = lambda x: self.c @ x + self.bias
-        self.A, self.b = combine_linear([constraint.c for constraint in self.constraints])
 
     @classmethod
     def phase_I_problem_from(cls, problem: LinearConstraintsProblem):
@@ -46,11 +43,12 @@ class LinearProblem(LinearConstraintsProblem):
             if problem.b[i] < 0:
                 E_i = -E_i
 
-            A_i = problem.a
+            A_i = constraint.c.a
             a = np.concatenate(A_i, E_i)
 
             constraints.append(LinearConstraint(
-                c=LinearCallable(a=a, b=constraint.b),
+                c=LinearCallable(a=a, b=constraint.c.b),
                 is_equality=constraint.is_equality))
 
-        return cls(c=e, constraints=constraints, x0=xz0)
+        return cls(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None)
+
