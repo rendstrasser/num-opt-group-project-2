@@ -10,10 +10,10 @@ import numpy as np
 
 @dataclass
 class Constraint:
-    c: Callable[[np.ndarray], np.ndarray]
+    c: Callable[[np.ndarray], float]
     is_equality: bool
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray) -> float:
         return self.c(x)
 
     def holds(self, x: np.ndarray) -> bool:
@@ -27,6 +27,7 @@ class Constraint:
         """
         return self(x) == 0
 
+
 @dataclass
 class LinearCallable:
     """Specific callable to keep a and b accessible."""
@@ -36,9 +37,11 @@ class LinearCallable:
     def __call__(self, x: np.ndarray) -> float:
         return self.a @ x - self.b
 
+
 @dataclass
 class LinearConstraint(Constraint):
     c: LinearCallable
+
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:
     """Combine attributes of linear callables into matrix A and vector b.

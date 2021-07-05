@@ -2,27 +2,30 @@
 MinimizationProblem, relevant functions and implemented methods.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, List, Sequence
 
 import numpy as np
 
-from shared.constraints import Constraint
+from shared.constraints import Constraint, LinearConstraint, combine_linear
 from shared.gradient_approximation import gradient_approximation, hessian_approximation
+
 
 @dataclass
 class MinimizationProblem:
     """
     Data class containing all necessary information of a minimization problem to support
-    steepest descent, newton, quasi-newton and conjugate minimization.
+    unconstrained optimization.
 
     Args:
         f (Callable): The function (objective) we are trying to minimize.
+        n (int): Dimensionality of input x for function
         constraints (Sequence[Constraint]): Sequence of constraints.
         solution (np.ndarray): The solution to the minimization problem. May be None if unknown.
         x0 (np.ndarray): The starting point for the minimization procedure. May be None if unknown.
     """
     f: Callable[[np.ndarray], float]
+    n: int
     constraints: Sequence[Constraint]
     x0: np.ndarray
     solution: np.ndarray
@@ -41,10 +44,10 @@ class MinimizationProblem:
         return self.f(x)
 
     def calc_gradient_at(self, x: np.ndarray) -> np.ndarray:
-        return self._central_difference_gradient(self.f, x)
+        return gradient_approximation(self.f, x)
 
     def calc_hessian_at(self, x: np.ndarray) -> np.ndarray:
-        return self.hessian_approximation(self.f, x)
+        return hessian_approximation(self.f, x)
 
     # --- Constraint methods ---
 
@@ -87,3 +90,19 @@ class MinimizationProblem:
             return self.calc_lagrangian_at(x_, lambda_)
 
         return hessian_approximation(lagrangian, x)
+
+
+@dataclass
+class LinearConstraintsProblem(MinimizationProblem):
+    """
+    Data class containing all necessary information of a minimization problem to support
+    unconstrained optimization.
+
+    Holds linar constraints in the form of Ax=b
+    """
+    constraints: Sequence[LinearConstraint]
+    A: np.ndarray = field(init=False)
+    b: np.ndarray = field(init=False)
+
+    def __post_init__(self):
+        self.A, self.b = combine_linear([constraint.c for constraint in self.constraints])
