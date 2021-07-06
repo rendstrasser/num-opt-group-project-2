@@ -31,12 +31,12 @@ def backtracking_line_search_sqp(
         p_lambda = l_hat - lambda_
         mu = find_mu()
 
-        merit_at_x = l1_merit(x, mu, c_norm)
+        merit_at_x = l1_merit(f_x, mu, c_norm)
         dir_gradient_merit = l1_merit_directional_gradient(f_grad, p, mu, c_norm)
-        first_wolfe_condition_term = merit_at_x + eta * alpha * dir_gradient_merit
 
         alpha = 1
-        while l1_merit(x + alpha * p, mu, c_norm) > first_wolfe_condition_term:
+        first_wolfe_condition_term = merit_at_x + eta * alpha * dir_gradient_merit
+        while l1_merit(problem.calc_f_at(x + alpha * p), mu, c_norm) > first_wolfe_condition_term:
             alpha *= tau
         
         x += alpha * p
