@@ -3,7 +3,7 @@ MinimizationProblem, relevant functions and implemented methods.
 """
 
 from dataclasses import dataclass, field
-from typing import Callable, List, Sequence
+from typing import Callable, List, Sequence, Optional
 
 import numpy as np
 
@@ -27,8 +27,8 @@ class MinimizationProblem:
     f: Callable[[np.ndarray], float]
     n: int
     constraints: Sequence[Constraint]
-    x0: np.ndarray
-    solution: np.ndarray
+    x0: Optional[np.ndarray]
+    solution: Optional[np.ndarray]
 
     # --- Objective function methods ---
 
