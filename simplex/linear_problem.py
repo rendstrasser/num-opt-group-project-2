@@ -1,13 +1,14 @@
 """
 LinearProblem and relevant functions.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Sequence, Callable
+from typing import Callable
 
 import numpy as np
 
-from shared.constraints import LinearConstraint, combine_linear, LinearCallable
+from shared.constraints import LinearConstraint, LinearCallable
 from shared.minimization_problem import LinearConstraintsProblem
 
 
@@ -22,7 +23,45 @@ class LinearProblem(LinearConstraintsProblem):
     bias: float = 0
 
     def __post_init__(self):
+        super(LinearProblem, self).__post_init__()
         self.f = lambda x: self.c @ x + self.bias
+
+    def to_standard_form(self) -> LinearProblem:
+        """
+        Assumes that the given problem is given without x>=0 constraints on the input
+        and converts it to standard form (13.41) where we assume these constraints, by
+        adapting the objective and constraints as shown in page 357.
+
+        Additionally, we just introduce slack variables for all the constraints, even
+        if they have been equality constraints before already - it shouldn't matter as z=0
+        will still be a valid solution for these.
+
+        :return: problem in standard form wrt to the objective and the equality constraints,
+        x>=0 constraints are not explicitly part of the problem
+        """
+        m = len(self.constraints)
+
+        standard_constraints = []
+
+        for i, constraint in enumerate(self.constraints):
+            a = constraint.c.a
+            e = np.eye(m)[i]
+
+            # bring to standard form (13.41) by assuming x+, x-, z,
+            # as shown in page 357
+            new_a = np.concatenate((a, -a, e))
+            standard_constraints.append(LinearConstraint(
+                c=LinearCallable(a=new_a, b=constraint.c.b),
+                is_equality=True))
+
+        standard_c = np.concatenate((self.c, -self.c, np.zeros(m)))
+
+        return LinearProblem(
+            c=standard_c,
+            n=len(standard_c),
+            constraints=standard_constraints,
+            x0=self.x0,
+            solution=None)
 
     @classmethod
     def phase_I_problem_from(cls, problem: LinearConstraintsProblem):

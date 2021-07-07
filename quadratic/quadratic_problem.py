@@ -18,4 +18,5 @@ class QuadraticProblem(LinearConstraintsProblem):
     bias: float = 0
     
     def __post_init__(self):
+        super(QuadraticProblem, self).__post_init__()
         self.f = lambda x: 1/2 * x @ self.G @ x + x @ self.c + self.bias
