@@ -8,6 +8,7 @@ def gradient_approximation(f: Callable, x: np.ndarray) -> np.ndarray:
 
     Args:
         x (np.ndarray): Function input.
+        f (Callable): Function to approximate.
 
     Returns:
         np.ndarray: Approximated gradient.
