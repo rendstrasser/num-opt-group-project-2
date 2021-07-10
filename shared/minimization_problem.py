@@ -98,7 +98,7 @@ class LinearConstraintsProblem(MinimizationProblem):
     Data class containing all necessary information of a minimization problem to support
     unconstrained optimization.
 
-    Holds linar constraints in the form of Ax=b
+    Holds linear constraints in the form of Ax=b
     """
     constraints: Sequence[LinearConstraint]
     A: np.ndarray = field(init=False)
