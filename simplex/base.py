@@ -1,9 +1,10 @@
 import numpy as np
+from typing import Tuple
 
 from simplex.linear_problem import LinearProblem
 
 
-def minimize_linear_problem(problem: LinearProblem) -> np.ndarray:
+def minimize_linear_problem(problem: LinearProblem) -> Tuple[np.ndarray, int]:
     """
     A problem - assumed to be in standard form - is optimized.
     """
@@ -42,7 +43,7 @@ def minimize_linear_problem(problem: LinearProblem) -> np.ndarray:
             # optimal point found
             x = np.zeros_like(x0)
             x[basis] = x_b
-            return x
+            return x, i+1
 
         q = non_basis[np.argmin(s_n)]
         A_q = problem.A[:, q].flatten()
@@ -85,12 +86,10 @@ def find_x0(problem: LinearProblem):
     # Phase I approach, if no x0 is given
 
     phase_I_problem = LinearProblem.phase_I_problem_from(problem)
-    xz0 = minimize_linear_problem(phase_I_problem)
+    xz0, _ = minimize_linear_problem(phase_I_problem)
 
     x0 = xz0[:problem.n]
     z0 = xz0[problem.n:]
-
-    print(phase_I_problem.calc_f_at(xz0))
 
     if np.any(np.absolute(z0) > 1e-4):
         # no solution!

@@ -12,8 +12,7 @@ def create_example_13_1_problem():
         LinearConstraint(LinearCallable(a=a2, b=8), is_equality=True),
     ])
 
-    #x0 = np.array([0, 0, 5, 8], dtype=np.float64)
-    x0 = None
+    x0 = np.array([0, 0, 5, 8], dtype=np.float64)
     solution = np.array([11/3, 4/3, 0, 0], dtype=np.float64)
 
     return LinearProblem(c=c, n=4, constraints=constraints, x0=x0, solution=solution)
