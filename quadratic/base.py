@@ -1,89 +1,81 @@
 from random import sample
+from typing import Tuple
 
 import numpy as np
 
 from quadratic.quadratic_problem import QuadraticProblem
-from shared.solve_linear_system import solve
+from simplex.base import find_x0
 
-PROJECTED_CG_TOLERANCE = 1e-4
-
-
-def minimize_quadratic_problem(problem: QuadraticProblem) -> np.ndarray:
-    """
-    A problem - assumed to be in standard form - is optimized.
-    """
-
-    if all(constraint.is_equality for constraint in problem.constraints):
-        return projected_cg()
-    else:
-        x = find_x0(problem)
-        m = len(problem.b)  # number of constraints -> size of basis
-
-        # TODO: Consider better selection than random.
-        working_set = sample(problem.active_set_at(x), k=5)
-
-        # Just to see if things run; TODO: Implement stopping criterion.
-        for _ in range(10):
-            # Above (16.39a)
-            g = problem.G @ x + problem.c
-
-            subproblem = QuadraticProblem(n=len(x), constraints=working_set, G=problem.G, c=g, solution=None, x0=None)
-
-        return x
+QP_MAX_ITER: int = 1_000
 
 
-def projected_cg(problem: QuadraticProblem):
-    """Compute the the solution of an equality-constrained quadratic programming problem,
-    as denoted in 'Algorithm 16.2 (Projected CG Method)'.
+def min_eq_qp(problem: QuadraticProblem) -> np.ndarray:
+    """Compute minimizer of equality constrained problem,
+    by solving (16.4).
 
     Args:
-        problem: QuadraticProblem where all constraints are equalities.
+        problem: Equality constrained problem.
+
+    Returns:
+        np.ndarray: Minimizer x_star, which is the solution to (16.4).
     """
-    if not all(constraint.is_equality for constraint in problem.constraints):
-        raise ValueError("Projected CG was supplied an inequality-constrained problem.")
+    kkt, kkt_solution = kkt_matrix(problem)
 
-    # Unpack problem.
-    A = problem.A
-    b = problem.b
-    c = problem.c
-    G = problem.G
+    # TODO: Use some other solving technique.
+    x_lambda = np.linalg.solve(kkt, kkt_solution)
 
-    # Compute H as defined on page 462. Needs to be non-singular, hence identity.
-    H = np.eye(G)
-
-    x = solve(A, b)
-
-    Z = NotImplemented
-
-    # (16.33)
-    P = Z @ np.linalg.inv(Z.T @ H @ Z) @ Z.T
-
-    r = G@x + c
-    g = P @ r
-    d = -g
-
-    while np.inner(r, g) < PROJECTED_CG_TOLERANCE:
-
-        # Find step-length
-        alpha = np.inner(r, g) / np.inner(d, G @ d)
-
-        # Step along direction
-        x = x + alpha * d
-
-        # What does this do?
-        r_new = r + alpha * G @ d
-
-        # New .. gradient?
-        g_new = P @ r_new
-
-        beta = np.inner(r_new, g_new) / np.inner(r, g)
-
-        d = -g_new + beta*d
-
-        g, r = g_new, r_new
-
+    x = x_lambda[:len(problem.G)]
     return x
 
 
-def find_x0(problem: QuadraticProblem) -> np.ndarray:
-    raise NotImplementedError
+def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
+    x = find_x0(problem)
+
+    active_set = problem.active_set_at(x0, as_equalities=True)
+
+    # Sample ~ 4/5 of the active constraints as equalities.
+    working_eq_set = sample(active_set, k=np.ceil(len(active_set) * 0.8))
+
+    c = problem.c
+    G = problem.G
+
+    for k in range(QP_MAX_ITER):
+        subproblem = QuadraticProblem(
+            G=G, c=G@x + c, constraints=working_eq_set, n=len(G)
+        )
+        p = min_eq_qp(subproblem)
+
+
+def minimize_quadratic_problem(problem: QuadraticProblem) -> np.ndarray:
+    """Compute minimizer of quadratic problem."""
+    return min_ineq_qp(problem) if problem.is_inequality_constrained else min_eq_qp(problem)
+
+
+def kkt_matrix(problem: QuadraticProblem) -> Tuple[np.ndarray, np.ndarray]:
+    """Return KKT-matrix system as defined in equation (16.4).
+
+    Args:
+        problem: QuadraticProblem to compute the KKT-matrix from
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Left matrix [[G, -A.T], [A, 0]]
+                                       and right vector [-c, b] of the equation.
+    """
+
+    A = problem.A
+    G = problem.G
+    c = problem.c
+    b = problem.b
+
+    min_A = min(A.shape)
+    zero = np.zeros(shape=(min_A, min_A))
+
+    left = np.block([
+        [G, -A.T],
+        [A, zero]
+    ])
+
+    right = np.block([-c, b])
+
+    return left, right
+
