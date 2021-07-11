@@ -22,7 +22,7 @@ def minimize_linear_problem(problem: LinearProblem) -> np.ndarray:
     return x
 
 
-def find_x0(problem: LinearProblem):
+def find_x0(problem: LinearConstraintsProblem):
     if problem.x0 is not None:
         return problem.x0
 
