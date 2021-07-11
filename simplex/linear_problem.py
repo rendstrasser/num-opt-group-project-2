@@ -8,7 +8,7 @@ from typing import Callable, Sequence, Tuple
 
 import numpy as np
 
-from shared.constraints import InequalitySign, LinearConstraint, LinearCallable
+from shared.constraints import EquationType, LinearConstraint, LinearCallable
 from shared.minimization_problem import LinearConstraintsProblem
 
 
@@ -44,10 +44,10 @@ class LinearProblem(LinearConstraintsProblem):
         for i in range(n):
             e = np.eye(n)[i]
 
-            incl_positivity_constraints = np.append(incl_positivity_constraints, 
-                LinearConstraint(
+            incl_positivity_constraints = np.append(incl_positivity_constraints,
+                                                    LinearConstraint(
                     c=LinearCallable(a=e, b=0),
-                    equality_type=InequalitySign.GREATER_THAN_OR_EQUAL))
+                    equation_type=EquationType.GE))
 
         return LinearProblem(n=n, constraints=incl_positivity_constraints, x0=x0, solution=solution, c=c, bias=bias)
 
@@ -69,7 +69,7 @@ class LinearProblem(LinearConstraintsProblem):
         """
         # number of slack variables
         
-        standard_constraints, non_positive_constrained_indices, slack_var_count = super().standardize_constraints()
+        standard_constraints, non_positive_constrained_indices, slack_var_count = super().standardized_constraints()
 
         # adapt c with new x^- and slack variables
         neg_c = -self.c[non_positive_constrained_indices]
@@ -86,7 +86,7 @@ class LinearProblem(LinearConstraintsProblem):
     def phase_I_problem_from(cls, problem: LinearConstraintsProblem, standardized: bool) -> Tuple[LinearProblem, np.ndarray, int]:
         # standardize constraints (but not entire problem, as not necessary)
         if not standardized:
-            standardized_constraints, non_positive_constrained_indices, slack_var_count = problem.standardize_constraints()
+            standardized_constraints, non_positive_constrained_indices, slack_var_count = problem.standardized_constraints()
         else:
             standardized_constraints = problem.constraints
             non_positive_constrained_indices = []
@@ -116,7 +116,7 @@ class LinearProblem(LinearConstraintsProblem):
 
             constraints.append(LinearConstraint(
                 c=LinearCallable(a=a, b=constraint.c.b),
-                equality_type=constraint.equality_type))
+                equation_type=constraint.equation_type))
 
         return LinearProblem(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None), non_positive_constrained_indices, slack_var_count
 

@@ -7,7 +7,7 @@ from typing import Callable, List, Sequence, Optional, Tuple
 
 import numpy as np
 
-from shared.constraints import Constraint, LinearConstraint, LinearCallable, InequalitySign, combine_linear
+from shared.constraints import Constraint, LinearConstraint, LinearCallable, EquationType, combine_linear
 from shared.gradient_approximation import gradient_approximation, hessian_approximation
 
 
@@ -111,51 +111,74 @@ class LinearConstraintsProblem(MinimizationProblem):
     def __post_init__(self):
         self.A, self.b = combine_linear([constraint.c for constraint in self.constraints])
 
-    def standardize_constraints(self) -> Tuple[Sequence[LinearConstraint], np.ndarray, int]:
-        # gather i's for which we already have positivity constraints and remove them
-        real_constraints = []
-        non_positive_constrained_indices = np.arange(self.n) # for start, assume none is positivity-constrained
-        slack_var_count = 0
-        for i, constraint in enumerate(self.constraints):
-            idx = constraint.try_get_positivity_constraint_idx()
-            if idx == -1:
-                # count number of slack variables that we need to introduce
-                if constraint.equality_type != InequalitySign.EQUAL:
-                    slack_var_count += 1
+    def standardized_constraints(self) -> Tuple[Sequence[LinearConstraint], np.ndarray, int]:
+        """Return tuple of List[standardized constraints], np.ndarray[non-pos c. indices] and number of slack variables.
 
-                real_constraints.append(constraint)
-            else:
-                # consider as positivity-constrained, remove from non-pos.-constr. list
-                non_positive_constrained_indices = non_positive_constrained_indices[non_positive_constrained_indices != idx]
+        Returns:
+            (List of standardized constraints, np.ndarray of non-positively constrained indices and number of slack variables.)
+        """
+        non_positive_constrained_idx, real_constraints, slack_var_count = self._non_positively_constrained()
 
-        # convert non-positivity-constraints to standard form
+        # Convert non-positivity-constraints to standard form.
+        standard_constraints = self._to_standard_form(non_positive_constrained_idx, real_constraints, slack_var_count)
+
+        return standard_constraints, non_positive_constrained_idx, slack_var_count
+
+    @staticmethod
+    def _to_standard_form(non_positive_constrained_idx, real_constraints, slack_var_count):
+        # TODO: Doc
+
         standard_constraints = []
         slack_var_idx = 0
         for constraint in real_constraints:
-            # unpack a
+
             a = constraint.c.a
+            b = constraint.c.b
 
-            # we need to multiply a with -1 if we have a greater than or equal sign
-            if constraint.equality_type == InequalitySign.GREATER_THAN_OR_EQUAL:
+            # Multiply `a` and `b` with -1 if we have a greater than or equal sign.
+            if constraint.equation_type == EquationType.GE:
                 a *= -1
-            
-            # all non-positivity-constraint indices need to be added with a x^- case,
-            # as we require all variables to have positivity constraints at the end
-            neg_a = -a[non_positive_constrained_indices]
+                b *= -1
 
-            # create constraint coefficients e for slack variable, if we need one to replace an inequality
-            if constraint.equality_type != InequalitySign.EQUAL:
+            # All non-positivity-constraint indices need to be added with a x^- case,
+            # as we require all variables to have positivity constraints at the end.
+            neg_a = -a[non_positive_constrained_idx]
+
+            # Create constraint coefficients e for slack variable, 
+            # if we need one to replace an inequality.
+            if constraint.equation_type != EquationType.EQ:
                 e = np.eye(slack_var_count)[slack_var_idx]
                 slack_var_idx += 1
             else:
                 e = np.zeros(slack_var_count)
 
-            # bring to standard form (13.41) by assuming x+, x-, z,
-            # as shown in page 357
+            # Bring to standard form (13.41) by assuming x+, x-, z,
+            # as shown in page 357.
             new_a = np.concatenate((a, neg_a, e))
 
             standard_constraints.append(LinearConstraint(
                 c=LinearCallable(a=new_a, b=constraint.c.b),
-                equality_type=InequalitySign.EQUAL))
+                equation_type=EquationType.EQ))
 
-        return standard_constraints, non_positive_constrained_indices, slack_var_count
+        return standard_constraints
+
+    def _non_positively_constrained(self):
+        # TODO: Doc
+
+        real_constraints = []
+        non_positive_constrained_idx = np.arange(self.n)  # for start, assume none is positivity-constrained
+        slack_var_count = 0
+
+        for i, constraint in enumerate(self.constraints):
+            idx = constraint.positivity_constraint_idx()
+            if idx is None:
+
+                # Per inequality, one slack variable is needed.
+                slack_var_count += constraint.equation_type != EquationType.EQ
+
+                real_constraints.append(constraint)
+            else:
+                # consider as positivity-constrained, remove from non-pos.-constr. list
+                non_positive_constrained_idx = non_positive_constrained_idx[non_positive_constrained_idx != idx]
+
+        return non_positive_constrained_idx, real_constraints, slack_var_count
