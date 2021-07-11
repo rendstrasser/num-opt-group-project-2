@@ -29,7 +29,7 @@ def min_eq_qp(problem: QuadraticProblem) -> np.ndarray:
 
 
 def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
-    x = find_x0(problem)
+    x = find_x0(problem, standardized=False)
 
     active_set = problem.active_set_at(x, as_equalities=True)
 

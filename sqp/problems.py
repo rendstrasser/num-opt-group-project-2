@@ -4,7 +4,7 @@ File with functions and routines to construct MinimizationProblems.
 
 import numpy as np
 
-from shared.constraints import Constraint
+from shared.constraints import Constraint, InequalitySign
 from shared.minimization_problem import MinimizationProblem
 
 
@@ -27,8 +27,8 @@ def create_example_18_3_problem():
 
     x0 = np.array((-1.71, 1.59, 1.82, -0.763, -0.763))
     solution = np.array((-1.8, 1.7, 1.9, -0.8, -0.8))
-    constraints = np.array((Constraint(c1, is_equality=True),
-                            Constraint(c2, is_equality=True),
-                            Constraint(c3, is_equality=True)))
+    constraints = np.array((Constraint(c1, equality_sign=InequalitySign.EQUAL),
+                            Constraint(c2, equality_sign=InequalitySign.EQUAL),
+                            Constraint(c3, equality_sign=InequalitySign.EQUAL)))
 
     return MinimizationProblem(f=f, n=len(x0), constraints=constraints, solution=solution, x0=x0)

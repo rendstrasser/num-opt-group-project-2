@@ -7,7 +7,7 @@ from typing import Callable, Sequence
 
 import numpy as np
 
-from shared.constraints import LinearConstraint, LinearCallable
+from shared.constraints import LinearConstraint, LinearCallable, InequalitySign
 from shared.minimization_problem import LinearConstraintsProblem
 
 
@@ -37,7 +37,7 @@ class QuadraticProblem(LinearConstraintsProblem):
 
     @classmethod
     def from_params(cls, G: np.ndarray, c: np.ndarray, A: np.ndarray,
-                    b: np.ndarray, is_equality_vec: Sequence[bool] = None,
+                    b: np.ndarray, equality_sign_vec: Sequence[bool] = None,
                     bias: float = 0, solution: np.ndarray = None,
                     x0: float = None) -> 'QuadraticProblem':
         """
@@ -48,7 +48,7 @@ class QuadraticProblem(LinearConstraintsProblem):
             c: Vector used in the linear term of the function.
             A: Matrix representing the weights of the different linear constraints.
             b: Vector representing the b_i in a linear constraint.
-            is_equality_vec: Vector specifying which of the constraints is an equality or not.
+            equality_sign_vec: Vector specifying which of the constraints have which equality signs
             bias: Bias of the function.
             solution: Solution of the problem.
             x0: Starting point.
@@ -56,15 +56,15 @@ class QuadraticProblem(LinearConstraintsProblem):
         Returns:
             QuadraticProblem specified by aforementioned parameters.
         """
-        is_equality_vec = is_equality_vec if is_equality_vec is not None else np.ones(len(b))
+        equality_sign_vec = equality_sign_vec if equality_sign_vec is not None else np.repeat(InequalitySign.EQUAL, len(b))
         constraints = [
-            LinearConstraint(LinearCallable(a_i, b_i), is_equality)
-            for a_i, b_i, is_equality in zip(A, b, is_equality_vec)
+            LinearConstraint(LinearCallable(a_i, b_i), equality_sign)
+            for a_i, b_i, equality_sign in zip(A, b, equality_sign_vec)
         ]
-        return cls(n=len(b), G=G, constraints=constraints, c=c, bias=bias,
+        return cls(n=len(c), G=G, constraints=constraints, c=c, bias=bias,
                    solution=solution, x0=x0)
 
     @property
     def is_inequality_constrained(self):
         """Return whether or not any of the imposed constraints are inequalities."""
-        return any(not constraint.is_equality for constraint in self.constraints)
+        return any(constraint.equality_type is not InequalitySign.EQUAL for constraint in self.constraints)

@@ -14,18 +14,16 @@ def test_standard_form_positive_constraints_assumed():
 
     b = np.array([2, 3])
 
-    lp = LinearProblem(
+    lp = LinearProblem.from_positive_constrained_params(
         c=np.array([2, 5]),
         n=2,
         constraints=[
-            LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), is_equality=True),
-            LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), is_equality=True),
-        ],
-        x0=None,
-        solution=None
+            LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), equality_type=InequalitySign.LESS_THAN_OR_EQUAL),
+            LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), equality_type=InequalitySign.LESS_THAN_OR_EQUAL),
+        ]
     )
 
-    standard_lp = lp.to_standard_form(x_positive_constraints_assumed=True)
+    standard_lp, _ = lp.to_standard_form()
 
     assert standard_lp.n == 4
     assert standard_lp.calc_f_at(np.array((1, 2, 1, 2))) == 12
@@ -43,8 +41,8 @@ def test_combined_params_linear():
         c=np.array([2, 5]),
         n=2,
         constraints=[
-            LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), is_equality=True),
-            LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), is_equality=True),
+            LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), equality_type=InequalitySign.EQUAL),
+            LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), equality_type=InequalitySign.EQUAL),
         ],
         x0=None,
         solution=None
@@ -56,11 +54,10 @@ def test_combined_params_linear():
     
 def test_as_equality():
     c = LinearCallable(a=np.array([1, 2]), b=5)
-    constraint = LinearConstraint(c, is_equality=False)
-    assert constraint.as_equality().is_equality
+    constraint = LinearConstraint(c, equality_type=InequalitySign.LESS_THAN_OR_EQUAL)
+    assert constraint.as_equality().equality_type is InequalitySign.EQUAL
 
 def test_standard_form_no_positive_constraints():
-
     A = np.array([
         [2, 3],
         [4, 5]
@@ -72,18 +69,19 @@ def test_standard_form_no_positive_constraints():
         c=np.array([2, 5]),
         n=2,
         constraints=[
-            LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), is_equality=True),
-            LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), is_equality=True),
+            LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), equality_type=InequalitySign.EQUAL),
+            LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), equality_type=InequalitySign.EQUAL),
         ],
         x0=None,
         solution=None
     )
 
-    standard_lp = lp.to_standard_form(x_positive_constraints_assumed=False)
+    standard_lp, non_positive_constrained_indices = lp.to_standard_form()
 
-    assert standard_lp.n == 6
-    assert standard_lp.calc_f_at(np.array((1, 2, 2, 1, 1, 2))) == 3
-    assert (standard_lp.calc_constraints_at(np.array((1, 2, 2, 1, 1, 2))) == np.array((0, 0))).all()
+    assert standard_lp.n == 4
+    assert (non_positive_constrained_indices == np.array([0, 1])).all()
+    assert standard_lp.calc_f_at(np.array((1, 2, 2, 1))) == 3
+    assert (standard_lp.calc_constraints_at(np.array((1, 2, 1, 2))) == np.array((-2, -3))).all()
 
 
 class TestQuadratic:
@@ -135,7 +133,5 @@ class TestQuadratic:
         assert np.all(np.isclose(x, sample_qp.solution))
 
     def test_phase_1_works_on_qp(self, sample_qp):
-        pytest.skip()
-
-        x = find_x0(sample_qp)
-        assert all(constraint.holds_at(x) for constraint in sample_qp)
+        x = find_x0(sample_qp, False)
+        assert all(constraint.holds(x) for constraint in sample_qp.constraints)

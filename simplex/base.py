@@ -5,15 +5,23 @@ from simplex.linear_problem import LinearProblem
 from shared.minimization_problem import LinearConstraintsProblem
 
 
-def minimize_linear_problem(problem: LinearProblem) -> Tuple[np.ndarray, int]:
+def minimize_linear_problem(original_problem: LinearProblem, standardized=False) -> Tuple[np.ndarray, int]:
     """
-    A problem - assumed to be in standard form - is optimized.
+    Minimizes the given linear problem. Supports not auto-standardizing when 'standardized=False', otherwise 
+    expects a standardized problem input.
     """
+
+    # standardize problem
+    if standardized:
+        problem = original_problem
+        non_positive_constrained_indices = []
+    else:
+        problem, non_positive_constrained_indices = original_problem.to_standard_form()
 
     m = len(problem.b) # number of constraints -> size of basis
     
     # starting the simplex method
-    x0 = find_x0(problem)
+    x0 = find_x0(problem, True)
 
     # the basis consists of x0 elements which are not 0. all others should be 0
     x0_args_sorted = np.argsort(x0)
@@ -44,6 +52,7 @@ def minimize_linear_problem(problem: LinearProblem) -> Tuple[np.ndarray, int]:
             # optimal point found
             x = np.zeros_like(x0)
             x[basis] = x_b
+            x = destandardize_x(original_problem, x, non_positive_constrained_indices)
             return x, i+1
 
         q = non_basis[np.argmin(s_n)]
@@ -79,21 +88,38 @@ def minimize_linear_problem(problem: LinearProblem) -> Tuple[np.ndarray, int]:
 
         i += 1
 
+def destandardize_x(original_problem: LinearProblem, x: np.ndarray, non_positive_constrained_indices: np.ndarray):
+    """
+    Destandardizes x based on the original problem
+    """
+    n = original_problem.n
 
-def find_x0(problem: LinearConstraintsProblem):
+    x_plus = x[:n]
+    x_neg = x[n:n + len(non_positive_constrained_indices)]
+
+    x_plus[non_positive_constrained_indices] -= x_neg
+
+    return x_plus
+
+
+def find_x0(problem: LinearConstraintsProblem, standardized: bool):
     if problem.x0 is not None:
         return problem.x0
 
     # Phase I approach, if no x0 is given
 
-    phase_I_problem = LinearProblem.phase_I_problem_from(problem)
-    xz0, _ = minimize_linear_problem(phase_I_problem)
+    phase_I_problem, non_positive_constrained_indices, slack_var_count = LinearProblem.phase_I_problem_from(problem, standardized)
 
-    x0 = xz0[:problem.n]
-    z0 = xz0[problem.n:]
+    n = problem.n + len(non_positive_constrained_indices) + slack_var_count # n of standardized constraints problem
+    xz0, _ = minimize_linear_problem(phase_I_problem, standardized=True)
+
+    x0 = xz0[:n]
+    z0 = xz0[n:]
 
     if np.any(np.absolute(z0) > 1e-4):
         # no solution!
         raise ValueError("Problem has no solution!")
+
+    x0 = destandardize_x(problem, x0, non_positive_constrained_indices)
     
     return x0
