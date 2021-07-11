@@ -32,13 +32,17 @@ class MinimizationProblem:
 
     # --- Objective function methods ---
 
-    def active_set_at(self, x: np.ndarray) -> List[Constraint]:
+    def active_set_at(self, x: np.ndarray, as_equalities: bool) -> List[Constraint]:
         """Return list of active constraints at point x.
+
+        Args:
+            as_equalities (bool): Whether to return constraints as equalities or not.
+            x: Point to evaluate constraints at.
 
         Returns:
             List[Constraint]: List of active constraints.
         """
-        return [c for c in self.constraints if c.is_active(x)]
+        return [c.as_equality() if as_equalities else c for c in self.constraints if c.is_active(x)]
 
     def calc_f_at(self, x: np.ndarray) -> float:
         return self.f(x)
@@ -98,7 +102,7 @@ class LinearConstraintsProblem(MinimizationProblem):
     Data class containing all necessary information of a minimization problem to support
     unconstrained optimization.
 
-    Holds linar constraints in the form of Ax=b
+    Holds linear constraints in the form of Ax=b
     """
     constraints: Sequence[LinearConstraint]
     A: np.ndarray = field(init=False)

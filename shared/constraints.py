@@ -2,6 +2,7 @@
 File containing Implementations of basic constraints and their methods.
 """
 
+from copy import copy
 from dataclasses import dataclass
 from typing import Callable, Sequence, Tuple
 
@@ -26,6 +27,12 @@ class Constraint:
             x: Point to evaluate the constraint at.
         """
         return self(x) == 0
+
+    def as_equality(self) -> 'LinearConstraint':
+        """Return copy of the constraint, such that it is an equality."""
+        new_constraint = copy(self)
+        new_constraint.is_equality = True
+        return new_constraint
 
 
 @dataclass

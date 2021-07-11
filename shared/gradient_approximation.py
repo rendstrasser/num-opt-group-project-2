@@ -8,6 +8,7 @@ def gradient_approximation(f: Callable, x: np.ndarray) -> np.ndarray:
 
     Args:
         x (np.ndarray): Function input.
+        f (Callable): Function to approximate.
 
     Returns:
         np.ndarray: Approximated gradient.
@@ -46,6 +47,10 @@ def hessian_approximation(f: Callable, x: np.ndarray) -> np.ndarray:
 
 
 def _hess_approx_num(f: Callable, x: np.ndarray, eps_i: np.ndarray, eps_j: np.ndarray) -> float:
+    """
+    Numerator of a Hessian approximation term,
+    where eps_i is a vector with entry i being a small value epsilon.
+    """
     return f(x + eps_i + eps_j) - f(x + eps_i) - f(x + eps_j) + f(x)
 
 

@@ -2,6 +2,7 @@ import numpy as np
 from typing import Tuple
 
 from simplex.linear_problem import LinearProblem
+from shared.minimization_problem import LinearConstraintsProblem
 
 
 def minimize_linear_problem(problem: LinearProblem) -> Tuple[np.ndarray, int]:
@@ -79,7 +80,7 @@ def minimize_linear_problem(problem: LinearProblem) -> Tuple[np.ndarray, int]:
         i += 1
 
 
-def find_x0(problem: LinearProblem):
+def find_x0(problem: LinearConstraintsProblem):
     if problem.x0 is not None:
         return problem.x0
 
