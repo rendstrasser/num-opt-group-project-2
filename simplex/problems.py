@@ -1,4 +1,4 @@
-from shared.constraints import InequalitySign
+from shared.constraints import EquationType
 import numpy as np
 
 from simplex.linear_problem import LinearProblem, LinearCallable, LinearConstraint
