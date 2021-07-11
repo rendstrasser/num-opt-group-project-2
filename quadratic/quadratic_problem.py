@@ -63,3 +63,10 @@ class QuadraticProblem(LinearConstraintsProblem):
         ]
         return cls(n=len(b), G=G, constraints=constraints, c=c, bias=bias,
                    solution=solution, x0=x0)
+
+    @property
+    def is_inequality_constrained(self):
+        """Return whether or not any of the imposed constraints are inequalities."""
+        return any(not constraint.is_equality for constraint in self.constraints)
+
+
