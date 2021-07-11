@@ -1,13 +1,10 @@
 import pytest
-import numpy as np
 
-from shared import constraints
-from shared.constraints import *
-from shared.solve_linear_system import solve
 from simplex.linear_problem import *
 from quadratic.quadratic_problem import *
 from quadratic.base import minimize_quadratic_problem
 
+from simplex.base import find_x0
 
 def test_combined_params_linear():
     A = np.array([
@@ -59,6 +56,12 @@ def test_standard_form():
     assert (standard_lp.calc_constraints_at(np.array((1, 2, 2, 1, 1, 2))) == np.array((0, 0))).all()
 
 
+def test_as_equality():
+    c = LinearCallable(a=np.array([1, 2]), b=5)
+    constraint = LinearConstraint(c, is_equality=False)
+    assert constraint.as_equality().is_equality
+
+
 class TestQuadratic:
 
     @pytest.fixture(scope='class')
@@ -89,7 +92,7 @@ class TestQuadratic:
     def sample_qp(self, sample_qp_params) -> QuadraticProblem:
         """Fixture returning Example 16.2."""
         G, c, A, b, solution = sample_qp_params
-        return QuadraticProblem.from_params(G, c, A, b, solution)
+        return QuadraticProblem.from_params(G, c, A, b, solution=solution)
 
     def test_combined_params(self, sample_qp, sample_qp_params):
         G, c, A, b, _ = sample_qp_params
@@ -104,12 +107,11 @@ class TestQuadratic:
             QuadraticProblem.from_params(G, c, A, b)
 
     def test_solve_equality_problem(self, sample_qp):
-        pytest.skip()
-
         x = minimize_quadratic_problem(sample_qp)
-        assert np.isclose(x, sample_qp.solution)
+        assert np.all(np.isclose(x, sample_qp.solution))
 
-    def test_find_nullspace_matrix(self, sample_qp_params):
-        G, c, A, b, _ = sample_qp_params
-        print(solve(A, np.zeros(len(A[0]))))
+    def test_phase_1_works_on_qp(self, sample_qp):
+        x = find_x0(sample_qp)
+        assert all(constraint.holds_at(x) for constraint in sample_qp)
+
 
