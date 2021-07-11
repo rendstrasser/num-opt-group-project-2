@@ -40,6 +40,22 @@ class QuadraticProblem(LinearConstraintsProblem):
                     b: np.ndarray, is_equality_vec: Sequence[bool] = None,
                     bias: float = 0, solution: np.ndarray = None,
                     x0: float = None) -> 'QuadraticProblem':
+        """
+        Alternative constructor to return a quadratic problem from different params.
+
+        Args:
+            G: Matrix used in the quadratic term of the function.
+            c: Vector used in the linear term of the function.
+            A: Matrix representing the weights of the different linear constraints.
+            b: Vector representing the b_i in a linear constraint.
+            is_equality_vec: Vector specifying which of the constraints is an equality or not.
+            bias: Bias of the function.
+            solution: Solution of the problem.
+            x0: Starting point.
+
+        Returns:
+            QuadraticProblem specified by aforementioned parameters.
+        """
         is_equality_vec = is_equality_vec if is_equality_vec is not None else np.ones(len(b))
         constraints = [
             LinearConstraint(LinearCallable(a_i, b_i), is_equality)
