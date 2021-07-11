@@ -27,6 +27,12 @@ class Constraint:
         """
         return self(x) == 0
 
+    def as_equality(self) -> 'LinearConstraint':
+        """Return copy of the constraint, such that it is an equality."""
+        new_constraint = copy(self)
+        new_constraint.is_equality = True
+        return new_constraint
+
 
 @dataclass
 class LinearCallable:
