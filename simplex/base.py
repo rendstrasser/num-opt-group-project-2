@@ -1,6 +1,7 @@
 import numpy as np
 
 from simplex.linear_problem import LinearProblem
+from shared.minimization_problem import LinearConstraintsProblem
 
 
 def minimize_linear_problem(problem: LinearProblem) -> np.ndarray:
