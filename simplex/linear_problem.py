@@ -4,11 +4,11 @@ LinearProblem and relevant functions.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Sequence, Tuple
 
 import numpy as np
 
-from shared.constraints import LinearConstraint, LinearCallable
+from shared.constraints import InequalitySign, LinearConstraint, LinearCallable
 from shared.minimization_problem import LinearConstraintsProblem
 
 
@@ -26,55 +26,75 @@ class LinearProblem(LinearConstraintsProblem):
         super(LinearProblem, self).__post_init__()
         self.f = lambda x: self.c @ x + self.bias
 
-    def to_standard_form(self, x_positive_constraints_assumed=True) -> LinearProblem:
+    @classmethod
+    def from_positive_constrained_params(cls, 
+            c: np.ndarray, 
+            n: int, 
+            constraints: Sequence[LinearConstraint], 
+            solution: np.ndarray = None, 
+            x0: np.ndarray = None,
+            bias: float = 0):
         """
-        Assumes that the given problem is given without x>=0 constraints on the input
-        and converts it to standard form (13.41) where we assume these constraints, by
+        Creates a linear problem based on the given params.
+        It is assumed that 'constraints' does not explicitly contain positivity constraints, e.g. x_4 >= 0.
+        Those are added by this method.
+        """
+        incl_positivity_constraints = constraints
+
+        for i in range(n):
+            e = np.eye(n)[i]
+
+            incl_positivity_constraints = np.append(incl_positivity_constraints, 
+                LinearConstraint(
+                    c=LinearCallable(a=e, b=0),
+                    equality_type=InequalitySign.GREATER_THAN_OR_EQUAL))
+
+        return LinearProblem(n=n, constraints=incl_positivity_constraints, x0=x0, solution=solution, c=c, bias=bias)
+
+    def to_standard_form(self) -> Tuple[LinearProblem, np.ndarray]:
+        """
+        Converts a problem to standard form (13.41) by
         adapting the objective and constraints as shown in page 357.
 
-        Additionally, we just introduce slack variables for all the constraints, even
-        if they have been equality constraints before already - it shouldn't matter as z=0
-        will still be a valid solution for these.
+        x is split into x+ and x- for all cases where we don't have positivity constraints on x.
+
+        Additionally, we introduce slack variables for all inequality the constraints.
+        Greater-than inequalities are multiplied with -1 before slack variables are added.
+
+        The final result does not explicitly contain positivity constraints anymore but is set up in a way that 
+        those can be assumed to be part of the theoretical problem.
 
         :return: problem in standard form wrt to the objective and the equality constraints,
         x>=0 constraints are not explicitly part of the problem
         """
-        m = len(self.constraints)
+        # number of slack variables
+        
+        standard_constraints, non_positive_constrained_indices, slack_var_count = super().standardize_constraints()
 
-        standard_constraints = []
-
-        for i, constraint in enumerate(self.constraints):
-            a = constraint.c.a
-            e = np.eye(m)[i]
-
-            # bring to standard form (13.41) by assuming x+, x-, z,
-            # as shown in page 357
-            new_a = np.concatenate((a, -a, e))
-            if x_positive_constraints_assumed:
-                # assume x >= 0 was already part before
-                new_a = np.concatenate((a, e))
-            
-            standard_constraints.append(LinearConstraint(
-                c=LinearCallable(a=new_a, b=constraint.c.b),
-                is_equality=True))
-
-        standard_c = np.concatenate((self.c, -self.c, np.zeros(m)))
-
-        if x_positive_constraints_assumed:
-            # assume x >= 0 was already part before
-            standard_c = np.concatenate((self.c, np.zeros(m)))
+        # adapt c with new x^- and slack variables
+        neg_c = -self.c[non_positive_constrained_indices]
+        standard_c = np.concatenate((self.c, neg_c, np.zeros(slack_var_count)))
 
         return LinearProblem(
             c=standard_c,
             n=len(standard_c),
             constraints=standard_constraints,
             x0=None,
-            solution=None)
+            solution=None), non_positive_constrained_indices
 
     @classmethod
-    def phase_I_problem_from(cls, problem: LinearConstraintsProblem):
-        n = problem.n
-        m = len(problem.constraints)
+    def phase_I_problem_from(cls, problem: LinearConstraintsProblem, standardized: bool) -> Tuple[LinearProblem, np.ndarray, int]:
+        # standardize constraints (but not entire problem, as not necessary)
+        if not standardized:
+            standardized_constraints, non_positive_constrained_indices, slack_var_count = problem.standardize_constraints()
+        else:
+            standardized_constraints = problem.constraints
+            non_positive_constrained_indices = []
+            slack_var_count = 0
+
+        # n of standardized constraints problem
+        n = problem.n + len(non_positive_constrained_indices) + slack_var_count 
+        m = len(standardized_constraints)
 
         e_x = np.zeros(shape=n)
         e_z = np.ones(shape=m)
@@ -85,7 +105,7 @@ class LinearProblem(LinearConstraintsProblem):
         xz0 = np.concatenate((x0, z0))
 
         constraints = []
-        for i, constraint in enumerate(problem.constraints):
+        for i, constraint in enumerate(standardized_constraints):
             E_i = np.eye(m)[i]
             if problem.b[i] < 0:
                 E_i = -E_i
@@ -96,7 +116,7 @@ class LinearProblem(LinearConstraintsProblem):
 
             constraints.append(LinearConstraint(
                 c=LinearCallable(a=a, b=constraint.c.b),
-                is_equality=constraint.is_equality))
+                equality_type=constraint.equality_type))
 
-        return LinearProblem(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None)
+        return LinearProblem(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None), non_positive_constrained_indices, slack_var_count
 
