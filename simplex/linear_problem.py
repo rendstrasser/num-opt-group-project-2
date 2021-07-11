@@ -9,7 +9,7 @@ from typing import Callable, Sequence, Tuple
 import numpy as np
 
 from shared.constraints import EquationType, LinearConstraint, LinearCallable
-from shared.minimization_problem import LinearConstraintsProblem
+from shared.minimization_problem import LinearConstraintsProblem, StandardizingMetaInfo
 
 
 @dataclass
@@ -51,7 +51,7 @@ class LinearProblem(LinearConstraintsProblem):
 
         return LinearProblem(n=n, constraints=incl_positivity_constraints, x0=x0, solution=solution, c=c, bias=bias)
 
-    def to_standard_form(self) -> Tuple[LinearProblem, np.ndarray]:
+    def to_standard_form(self) -> Tuple[LinearProblem, StandardizingMetaInfo]:
         """
         Converts a problem to standard form (13.41) by
         adapting the objective and constraints as shown in page 357.
@@ -69,31 +69,30 @@ class LinearProblem(LinearConstraintsProblem):
         """
         # number of slack variables
         
-        standard_constraints, non_positive_constrained_indices, slack_var_count = super().standardized_constraints()
+        standard_constraints, standardizing_meta_info = super().standardized_constraints()
 
         # adapt c with new x^- and slack variables
-        neg_c = -self.c[non_positive_constrained_indices]
-        standard_c = np.concatenate((self.c, neg_c, np.zeros(slack_var_count)))
+        neg_c = -self.c[standardizing_meta_info.indices_of_non_positive_constrained_vars]
+        standard_c = np.concatenate((self.c, neg_c, np.zeros(standardizing_meta_info.slack_var_count)))
 
         return LinearProblem(
             c=standard_c,
             n=len(standard_c),
             constraints=standard_constraints,
             x0=None,
-            solution=None), non_positive_constrained_indices
+            solution=None), standardizing_meta_info
 
     @classmethod
-    def phase_I_problem_from(cls, problem: LinearConstraintsProblem, standardized: bool) -> Tuple[LinearProblem, np.ndarray, int]:
+    def phase_I_problem_from(cls, problem: LinearConstraintsProblem, standardized: bool) -> Tuple[LinearProblem, StandardizingMetaInfo]:
         # standardize constraints (but not entire problem, as not necessary)
         if not standardized:
-            standardized_constraints, non_positive_constrained_indices, slack_var_count = problem.standardized_constraints()
+            standardized_constraints, standardizing_meta_info = problem.standardized_constraints()
         else:
             standardized_constraints = problem.constraints
-            non_positive_constrained_indices = []
-            slack_var_count = 0
+            standardizing_meta_info = StandardizingMetaInfo.from_pre_standardized(problem)
 
         # n of standardized constraints problem
-        n = problem.n + len(non_positive_constrained_indices) + slack_var_count 
+        n = standardizing_meta_info.calc_standardized_n()
         m = len(standardized_constraints)
 
         e_x = np.zeros(shape=n)
@@ -118,5 +117,5 @@ class LinearProblem(LinearConstraintsProblem):
                 c=LinearCallable(a=a, b=constraint.c.b),
                 equation_type=constraint.equation_type))
 
-        return LinearProblem(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None), non_positive_constrained_indices, slack_var_count
+        return LinearProblem(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None), standardizing_meta_info
 

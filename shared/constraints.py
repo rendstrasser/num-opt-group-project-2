@@ -66,14 +66,21 @@ class LinearConstraint(Constraint):
         then this method will return the index of the input vector which is positivity-constrained,
         which would be 4 in the example above.
 
-        Returns None if not a positivity constraint.
+        Returns:
+            Optional[int]: The index of the variable which has the positivity constraint or None if not a positivity constraint.
         """
+        if self.c.b != 0:
+            # only for b=0 we can have a positivity constraint
+            return None
+
+        if self.equation_type == EquationType.EQ:
+            # only inequality constraints can represent a positivity constraint
+            return None
+              
         nonzero_indices = np.nonzero(self.c.a)
-        if (self.equation_type == EquationType.GE
-            and
-                len(nonzero_indices) == 1
-            and
-                self.c.a[nonzero_indices[0]] == 1):
+        expected_non_zero_elem = 1 if self.equation_type == EquationType.GE else -1
+
+        if len(nonzero_indices) == 1 and self.c.a[nonzero_indices[0]] == expected_non_zero_elem:
             return nonzero_indices[0]
 
 
