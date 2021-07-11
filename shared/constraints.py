@@ -59,6 +59,6 @@ def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarr
     Returns:
         Tuple[np.ndarray, np.ndarray]: A and b.
     """
-    A = np.array([c.a for c in linear_callables])
-    b = np.array([c.b for c in linear_callables])
+    A = np.array([c.a for c in linear_callables], dtype=np.float64)
+    b = np.array([c.b for c in linear_callables], dtype=np.float64)
     return A, b

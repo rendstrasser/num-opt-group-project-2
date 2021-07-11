@@ -26,7 +26,7 @@ class LinearProblem(LinearConstraintsProblem):
         super(LinearProblem, self).__post_init__()
         self.f = lambda x: self.c @ x + self.bias
 
-    def to_standard_form(self) -> LinearProblem:
+    def to_standard_form(self, x_positive_constraints_assumed=True) -> LinearProblem:
         """
         Assumes that the given problem is given without x>=0 constraints on the input
         and converts it to standard form (13.41) where we assume these constraints, by
@@ -50,17 +50,25 @@ class LinearProblem(LinearConstraintsProblem):
             # bring to standard form (13.41) by assuming x+, x-, z,
             # as shown in page 357
             new_a = np.concatenate((a, -a, e))
+            if x_positive_constraints_assumed:
+                # assume x >= 0 was already part before
+                new_a = np.concatenate((a, e))
+            
             standard_constraints.append(LinearConstraint(
                 c=LinearCallable(a=new_a, b=constraint.c.b),
                 is_equality=True))
 
         standard_c = np.concatenate((self.c, -self.c, np.zeros(m)))
 
+        if x_positive_constraints_assumed:
+            # assume x >= 0 was already part before
+            standard_c = np.concatenate((self.c, np.zeros(m)))
+
         return LinearProblem(
             c=standard_c,
             n=len(standard_c),
             constraints=standard_constraints,
-            x0=self.x0,
+            x0=None,
             solution=None)
 
     @classmethod
@@ -83,11 +91,12 @@ class LinearProblem(LinearConstraintsProblem):
                 E_i = -E_i
 
             A_i = constraint.c.a
-            a = np.concatenate([A_i, E_i])
+
+            a = np.concatenate((A_i, E_i))
 
             constraints.append(LinearConstraint(
                 c=LinearCallable(a=a, b=constraint.c.b),
                 is_equality=constraint.is_equality))
 
-        return cls(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None)
+        return LinearProblem(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None)
 

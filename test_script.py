@@ -6,6 +6,31 @@ from quadratic.base import minimize_quadratic_problem
 
 from simplex.base import find_x0
 
+def test_standard_form_positive_constraints_assumed():
+    A = np.array([
+        [2, 3],
+        [4, 5]
+    ])
+
+    b = np.array([2, 3])
+
+    lp = LinearProblem(
+        c=np.array([2, 5]),
+        n=2,
+        constraints=[
+            LinearConstraint(c=LinearCallable(a=A[0], b=b[0]), is_equality=True),
+            LinearConstraint(c=LinearCallable(a=A[1], b=b[1]), is_equality=True),
+        ],
+        x0=None,
+        solution=None
+    )
+
+    standard_lp = lp.to_standard_form(x_positive_constraints_assumed=True)
+
+    assert standard_lp.n == 4
+    assert standard_lp.calc_f_at(np.array((1, 2, 1, 2))) == 12
+    assert (standard_lp.calc_constraints_at(np.array((1, 2, 1, 2))) == np.array((7, 13))).all()
+
 def test_combined_params_linear():
     A = np.array([
         [2, 3],
@@ -28,9 +53,14 @@ def test_combined_params_linear():
     assert np.all(sp.A == A)
     assert np.all(sp.b == b)
     assert sp.f(np.array([1, 1])) == 7
+    
+def test_as_equality():
+    c = LinearCallable(a=np.array([1, 2]), b=5)
+    constraint = LinearConstraint(c, is_equality=False)
+    assert constraint.as_equality().is_equality
 
+def test_standard_form_no_positive_constraints():
 
-def test_standard_form():
     A = np.array([
         [2, 3],
         [4, 5]
@@ -49,17 +79,11 @@ def test_standard_form():
         solution=None
     )
 
-    standard_lp = lp.to_standard_form()
+    standard_lp = lp.to_standard_form(x_positive_constraints_assumed=False)
 
     assert standard_lp.n == 6
     assert standard_lp.calc_f_at(np.array((1, 2, 2, 1, 1, 2))) == 3
     assert (standard_lp.calc_constraints_at(np.array((1, 2, 2, 1, 1, 2))) == np.array((0, 0))).all()
-
-
-def test_as_equality():
-    c = LinearCallable(a=np.array([1, 2]), b=5)
-    constraint = LinearConstraint(c, is_equality=False)
-    assert constraint.as_equality().is_equality
 
 
 class TestQuadratic:
@@ -113,5 +137,3 @@ class TestQuadratic:
     def test_phase_1_works_on_qp(self, sample_qp):
         x = find_x0(sample_qp)
         assert all(constraint.holds_at(x) for constraint in sample_qp)
-
-
