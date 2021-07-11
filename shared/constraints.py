@@ -4,7 +4,7 @@ File containing Implementations of basic constraints and their methods.
 
 from copy import copy
 from dataclasses import dataclass
-from typing import Callable, Sequence, Tuple
+from typing import Callable, Sequence, Tuple, Optional
 from enum import Enum
 from operator import __le__, __ge__, __eq__
 
@@ -77,6 +77,23 @@ class LinearCallable:
 @dataclass
 class LinearConstraint(Constraint):
     c: LinearCallable
+
+    def positivity_constraint_idx(self) -> Optional[int]:
+        """
+        If this constraints represents a positivity constraint, e.g.,
+        x_4 >= 0,
+        then this method will return the index of the input vector which is positivity-constrained,
+        which would be 4 in the example above.
+
+        Returns None if not a positivity constraint.
+        """
+        nonzero_indices = np.nonzero(self.c.a)
+        if (self.equation_type == EquationType.GE
+            and
+                len(nonzero_indices) == 1
+            and
+                self.c.a[nonzero_indices[0]] == 1):
+            return nonzero_indices[0]
 
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:

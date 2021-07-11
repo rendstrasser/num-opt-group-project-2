@@ -7,7 +7,7 @@ from typing import Callable, Sequence
 
 import numpy as np
 
-from shared.constraints import LinearConstraint, LinearCallable, InequalitySign
+from shared.constraints import LinearConstraint, LinearCallable, EquationType
 from shared.minimization_problem import LinearConstraintsProblem
 
 
@@ -48,7 +48,7 @@ class QuadraticProblem(LinearConstraintsProblem):
             c: Vector used in the linear term of the function.
             A: Matrix representing the weights of the different linear constraints.
             b: Vector representing the b_i in a linear constraint.
-            equality_sign_vec: Vector specifying which of the constraints have which equality signs
+            equation_type_vec (object): Vector specifying which of the constraints have which equality signs.
             bias: Bias of the function.
             solution: Solution of the problem.
             x0: Starting point.
