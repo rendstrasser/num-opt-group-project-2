@@ -31,7 +31,7 @@ def min_eq_qp(problem: QuadraticProblem) -> np.ndarray:
 def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
     x = find_x0(problem)
 
-    active_set = problem.active_set_at(x0, as_equalities=True)
+    active_set = problem.active_set_at(x, as_equalities=True)
 
     # Sample ~ 4/5 of the active constraints as equalities.
     working_eq_set = sample(active_set, k=np.ceil(len(active_set) * 0.8))
