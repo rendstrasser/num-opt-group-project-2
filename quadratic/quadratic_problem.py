@@ -13,6 +13,15 @@ from shared.minimization_problem import LinearConstraintsProblem
 
 @dataclass(repr=False)
 class QuadraticProblem(LinearConstraintsProblem):
+    """Quadratic problem, such that
+
+    Attributes:
+        f (Callable): Is the function as defined in the book,
+        c (np.ndarray): is a vector of weights,
+        G (np.ndarray): is a non-indefinite matrix,
+        constraints (Sequence[LinearConstraint]): is a collection of linear constraints, which can contain inequalities,
+        bias (float): is an offset/intercept/bias which translates the entire function up or down.
+    """
     f: Callable[[np.ndarray], float] = field(init=False)
     G: np.ndarray
     c: np.ndarray
