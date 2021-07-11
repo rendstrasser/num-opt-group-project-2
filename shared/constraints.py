@@ -6,29 +6,29 @@ from copy import copy
 from dataclasses import dataclass
 from typing import Callable, Sequence, Tuple
 from enum import Enum
+from operator import __le__, __ge__, __eq__
+
 
 import numpy as np
 
-class InequalitySign(Enum):
-    EQUAL = 1
-    LESS_THAN_OR_EQUAL = 2
-    GREATER_THAN_OR_EQUAL = 3
+
+class EquationType(Enum):
+    """Defines which operator/sign is in the middle of the equation."""
+    EQ = __eq__
+    LE = __le__
+    GE = __ge__
+
 
 @dataclass
 class Constraint:
     c: Callable[[np.ndarray], float]
-    equality_type: InequalitySign
+    equation_type: EquationType
 
     def __call__(self, x: np.ndarray) -> float:
         return self.c(x)
 
     def holds(self, x: np.ndarray) -> bool:
-        if self.equality_type == InequalitySign.EQUAL:
-            return self(x) == 0
-        elif self.equality_type == InequalitySign.LESS_THAN_OR_EQUAL:
-            return self(x) <= 0
-        elif self.equality_type == InequalitySign.GREATER_THAN_OR_EQUAL:
-            return self(x) >= 0
+        return self.equation_type.value(self.c(x), 0)
 
     def is_active(self, x: np.ndarray) -> bool:
         """Check whether the constraint is active at point x, i.e. if c(x) == 0.
@@ -60,7 +60,7 @@ class Constraint:
     def as_equality(self) -> 'LinearConstraint':
         """Return copy of the constraint, such that it is an equality."""
         new_constraint = copy(self)
-        new_constraint.equality_type = InequalitySign.EQUAL
+        new_constraint.equation_type = EquationType.EQ
         return new_constraint
 
 

@@ -37,7 +37,7 @@ class QuadraticProblem(LinearConstraintsProblem):
 
     @classmethod
     def from_params(cls, G: np.ndarray, c: np.ndarray, A: np.ndarray,
-                    b: np.ndarray, equality_sign_vec: Sequence[bool] = None,
+                    b: np.ndarray, equation_type_vec: Sequence[bool] = None,
                     bias: float = 0, solution: np.ndarray = None,
                     x0: float = None) -> 'QuadraticProblem':
         """
@@ -56,10 +56,10 @@ class QuadraticProblem(LinearConstraintsProblem):
         Returns:
             QuadraticProblem specified by aforementioned parameters.
         """
-        equality_sign_vec = equality_sign_vec if equality_sign_vec is not None else np.repeat(InequalitySign.EQUAL, len(b))
+        equation_type_vec = equation_type_vec if equation_type_vec is not None else np.repeat(EquationType.EQ, len(b))
         constraints = [
-            LinearConstraint(LinearCallable(a_i, b_i), equality_sign)
-            for a_i, b_i, equality_sign in zip(A, b, equality_sign_vec)
+            LinearConstraint(LinearCallable(a_i, b_i), equation_type)
+            for a_i, b_i, equation_type in zip(A, b, equation_type_vec)
         ]
         return cls(n=len(c), G=G, constraints=constraints, c=c, bias=bias,
                    solution=solution, x0=x0)
@@ -67,4 +67,4 @@ class QuadraticProblem(LinearConstraintsProblem):
     @property
     def is_inequality_constrained(self):
         """Return whether or not any of the imposed constraints are inequalities."""
-        return any(constraint.equality_type is not InequalitySign.EQUAL for constraint in self.constraints)
+        return any(constraint.equation_type is not EquationType.EQ for constraint in self.constraints)
