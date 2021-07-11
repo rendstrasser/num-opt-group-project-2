@@ -97,7 +97,7 @@ def destandardize_x(original_problem: LinearProblem, x: np.ndarray, non_positive
     x_plus = x[:n]
     x_neg = x[n:n + len(non_positive_constrained_indices)]
 
-    x_plus[non_positive_constrained_indices] += x_neg
+    x_plus[non_positive_constrained_indices] -= x_neg
 
     return x_plus
 
