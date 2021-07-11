@@ -30,8 +30,8 @@ class QuadraticProblem(LinearConstraintsProblem):
     def __post_init__(self):
         super(QuadraticProblem, self).__post_init__()
 
-        if any(ev < 0 for ev in np.linalg.eigvals(self.G)):
-            raise ValueError("Indefinite Matrix not supported.")
+        if {-1, 1}.issubset(np.linalg.eigvals(self.G)):
+            raise ValueError("Indefinite Matrices are not supported.")
 
         self.f = lambda x: 1 / 2 * x @ self.G @ x + x @ self.c + self.bias
 
