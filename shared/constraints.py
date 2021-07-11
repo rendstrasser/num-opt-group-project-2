@@ -2,6 +2,7 @@
 File containing Implementations of basic constraints and their methods.
 """
 
+from copy import copy
 from dataclasses import dataclass
 from typing import Callable, Sequence, Tuple
 
