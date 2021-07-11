@@ -133,10 +133,12 @@ class LinearConstraintsProblem(MinimizationProblem):
         for constraint in real_constraints:
 
             a = constraint.c.a
+            b = constraint.c.b
 
-            # Multiply `a` with -1 if we have a greater than or equal sign.
+            # Multiply `a` and `b` with -1 if we have a greater than or equal sign.
             if constraint.equation_type == EquationType.GE:
                 a *= -1
+                b *= -1
 
             # All non-positivity-constraint indices need to be added with a x^- case,
             # as we require all variables to have positivity constraints at the end.
