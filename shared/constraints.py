@@ -37,7 +37,7 @@ class Constraint:
             x: Point to evaluate the constraint at.
         """
         return self(x) == 0
-    
+
     def try_get_positivity_constraint_idx(self) -> bool:
         """
         If this constraints represents a positivity constraint, e.g.,
