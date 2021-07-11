@@ -83,7 +83,7 @@ class LinearProblem(LinearConstraintsProblem):
                 E_i = -E_i
 
             A_i = constraint.c.a
-            a = np.concatenate(A_i, E_i)
+            a = np.concatenate([A_i, E_i])
 
             constraints.append(LinearConstraint(
                 c=LinearCallable(a=a, b=constraint.c.b),
