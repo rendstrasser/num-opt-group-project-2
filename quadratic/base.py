@@ -65,7 +65,7 @@ def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
             if blocking_constraints:
                 working_set.append(blocking_constraints.pop())
 
-    raise TimeoutError(f"Solution not found within {QP_MAX_ITER} steps; current {x=}")
+    raise TimeoutError(f"Solution not found within {QP_MAX_ITER} steps; current x = {x}")
 
 
 def compute_alpha(blocking_constraints: List[LinearConstraint], p: np.ndarray, x: np.ndarray) -> float:
