@@ -3,6 +3,7 @@ from typing import Tuple
 
 from simplex.linear_problem import LinearProblem
 from shared.minimization_problem import LinearConstraintsProblem
+from shared.solve_linear_system import solve
 
 
 def minimize_linear_problem(original_problem: LinearProblem, standardized=False) -> Tuple[np.ndarray, int]:
@@ -40,12 +41,14 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
         c_b = problem.c[basis]
         c_n = problem.c[non_basis]
 
-        B_inv = np.linalg.inv(B)
+        # B_inv = np.linalg.inv(B)
 
         if i == 0: # only necessary for initial run
-            x_b = B_inv @ problem.b
+            x_b = solve(B, problem.b)
+            # x_b = B_inv @ problem.b
 
-        lambda_ = B_inv.T @ c_b
+        # lambda_ = B_inv.T @ c_b
+        lambda_ = solve(B.T, c_b)
         s_n = c_n - N.T @ lambda_
 
         if np.all(s_n >= 0):
@@ -57,7 +60,8 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
 
         q = non_basis[np.argmin(s_n)]
         A_q = problem.A[:, q].flatten()
-        d = B_inv @ A_q
+        # d = B_inv @ A_q
+        d = solve(B, A_q)
 
         if np.all(d <= 0):
             raise ValueError("Problem is unbounded")
