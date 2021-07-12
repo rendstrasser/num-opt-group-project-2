@@ -76,6 +76,9 @@ class LinearConstraint(Constraint):
                 self.c.a[nonzero_indices[0]] == 1):
             return nonzero_indices[0]
 
+    def __eq__(self, other: 'LinearConstraint') -> bool:
+        return self.c == other.c
+
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:
     """Combine attributes of linear callables into matrix A and vector b.
