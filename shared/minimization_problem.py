@@ -98,17 +98,41 @@ class MinimizationProblem:
 
 @dataclass
 class StandardizingMetaInfo:
+    """
+    Holds meta-info required for standardizing and destandardizing, as described in 13.41.
+
+    Args:
+        original_n: Dimensionality of x of original problem.
+            Can be used to find which variables of the standardized problem represent x^+.
+        indices_of_non_positive_constrained_vars: As the name suggests, contains a list of indices that
+            represent which elements of x had no positivity constraints in the original problem, e.g.,
+            x_4 >= 0. In this example 4 would not be part of the list, but maybe 3, if it doesn't have
+            a positivity constraint. This list can be used to find which variables of the standardized problem
+            represent x^-.
+        slack_var_count: Count of the number of slack variables
+            that need to be introduced to replace inequalities with equalities.
+        real_constraints: Constraints of original problem without
+            simple positivity-constraints, e.g. x_4>=0.
+    """
     original_n: int
     indices_of_non_positive_constrained_vars: np.ndarray
     slack_var_count: int
     real_constraints: Sequence[LinearConstraint]
 
-    def calc_standardized_n(self):
+    def calc_standardized_n(self) -> int:
+        """
+        Calculates the dimensionality of the standardized problem.
+
+        Returns:
+            Integer for dimensionality of standardized problem.
+        """
         return self.original_n + len(self.indices_of_non_positive_constrained_vars) + self.slack_var_count
 
     def destandardize_x(self, x: np.ndarray) -> np.ndarray:
         """
-        Destandardizes x based on the original problem
+        Destandardizes x based on the original problem.
+
+        :param x: x in terms of standardized problem, containing x+, x- and slack variables.
 
         Returns:
             x in terms of the original problem
@@ -117,12 +141,22 @@ class StandardizingMetaInfo:
 
         x_plus = x[:n] # take x_+ part
         x_neg = x[n:n + len(self.indices_of_non_positive_constrained_vars)]
-        x_plus[self.indices_of_non_positive_constrained_vars] -= x_neg # subtract x_- from x_+ to get x
+
+        # subtract x_- from x_+ to get x
+        x_plus[self.indices_of_non_positive_constrained_vars] -= x_neg
 
         return x_plus
 
     @classmethod
-    def from_pre_standardized(cls, problem: 'LinearConstraintsProblem'):
+    def from_pre_standardized(cls, problem: 'LinearConstraintsProblem') -> 'StandardizingMetaInfo':
+        """
+        Factory method to create standardizing meta info for a problem that is already 
+        standardized. This represents a default instance in the sense of a non-standardized meta info.
+        
+        :param problem: Problem that is already in standardized form.
+        Returns:
+            Standardizing meta info for problem.
+        """
         return StandardizingMetaInfo(problem.n, np.empty(0, dtype=int), 0, problem.constraints)
 
 
