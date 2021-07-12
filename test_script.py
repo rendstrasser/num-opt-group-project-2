@@ -80,10 +80,10 @@ def test_standard_form_no_positive_constraints():
         solution=None
     )
 
-    standard_lp, non_positive_constrained_indices = lp.to_standard_form()
+    standard_lp, standardizing_meta_info = lp.to_standard_form()
 
     assert standard_lp.n == 4
-    assert (non_positive_constrained_indices == np.array([0, 1])).all()
+    assert (standardizing_meta_info.indices_of_non_positive_constrained_vars == np.array([0, 1])).all()
     assert standard_lp.calc_f_at(np.array((1, 2, 2, 1))) == 3
     assert (standard_lp.calc_constraints_at(np.array((1, 2, 1, 2))) == np.array((-2, -3))).all()
 

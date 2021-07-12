@@ -2,22 +2,22 @@ import numpy as np
 from typing import Tuple
 
 from simplex.linear_problem import LinearProblem
-from shared.minimization_problem import LinearConstraintsProblem
 from shared.solve_linear_system import solve
+from shared.minimization_problem import LinearConstraintsProblem, StandardizingMetaInfo
 
 
 def minimize_linear_problem(original_problem: LinearProblem, standardized=False) -> Tuple[np.ndarray, int]:
     """
-    Minimizes the given linear problem. Supports not auto-standardizing when 'standardized=False', otherwise 
+    Minimizes the given linear problem. Supports auto-standardizing when 'standardized=False', otherwise
     expects a standardized problem input.
     """
 
-    # standardize problem
+    # standardize problem if not yet standardized
     if standardized:
         problem = original_problem
-        non_positive_constrained_indices = []
+        standardizing_meta_info = StandardizingMetaInfo.from_pre_standardized(problem)
     else:
-        problem, non_positive_constrained_indices = original_problem.to_standard_form()
+        problem, standardizing_meta_info = original_problem.to_standard_form()
 
     m = len(problem.b) # number of constraints -> size of basis
     
@@ -41,11 +41,8 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
         c_b = problem.c[basis]
         c_n = problem.c[non_basis]
 
-        # B_inv = np.linalg.inv(B)
-
         if i == 0: # only necessary for initial run
             x_b = solve(B, problem.b)
-            # x_b = B_inv @ problem.b
 
         # lambda_ = B_inv.T @ c_b
         lambda_ = solve(B.T, c_b)
@@ -55,12 +52,11 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
             # optimal point found
             x = np.zeros_like(x0)
             x[basis] = x_b
-            x = destandardize_x(original_problem, x, non_positive_constrained_indices)
+            x = standardizing_meta_info.destandardize_x(x)
             return x, i+1
 
         q = non_basis[np.argmin(s_n)]
         A_q = problem.A[:, q].flatten()
-        # d = B_inv @ A_q
         d = solve(B, A_q)
 
         if np.all(d <= 0):
@@ -92,19 +88,6 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
 
         i += 1
 
-def destandardize_x(original_problem: LinearProblem, x: np.ndarray, non_positive_constrained_indices: np.ndarray):
-    """
-    Destandardizes x based on the original problem
-    """
-    n = original_problem.n
-
-    x_plus = x[:n]
-    x_neg = x[n:n + len(non_positive_constrained_indices)]
-
-    x_plus[non_positive_constrained_indices] -= x_neg
-
-    return x_plus
-
 
 def find_x0(problem: LinearConstraintsProblem, standardized: bool):
     if problem.x0 is not None:
@@ -112,9 +95,9 @@ def find_x0(problem: LinearConstraintsProblem, standardized: bool):
 
     # Phase I approach, if no x0 is given
 
-    phase_I_problem, non_positive_constrained_indices, slack_var_count = LinearProblem.phase_I_problem_from(problem, standardized)
+    phase_I_problem, standardizing_meta_info = LinearProblem.phase_I_problem_from(problem, standardized)
 
-    n = problem.n + len(non_positive_constrained_indices) + slack_var_count # n of standardized constraints problem
+    n = standardizing_meta_info.calc_standardized_n()  # n of standardized constraints problem
     xz0, _ = minimize_linear_problem(phase_I_problem, standardized=True)
 
     x0 = xz0[:n]
@@ -124,6 +107,6 @@ def find_x0(problem: LinearConstraintsProblem, standardized: bool):
         # no solution!
         raise ValueError("Problem has no solution!")
 
-    x0 = destandardize_x(problem, x0, non_positive_constrained_indices)
+    x0 = standardizing_meta_info.destandardize_x(x0)
     
     return x0

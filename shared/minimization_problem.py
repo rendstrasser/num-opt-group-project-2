@@ -97,6 +97,70 @@ class MinimizationProblem:
 
 
 @dataclass
+class StandardizingMetaInfo:
+    """
+    Holds meta-info required for standardizing and destandardizing, as described in 13.41.
+
+    Args:
+        original_n: Dimensionality of x of original problem.
+            Can be used to find which variables of the standardized problem represent x^+.
+        indices_of_non_positive_constrained_vars: As the name suggests, contains a list of indices that
+            represent which elements of x had no positivity constraints in the original problem, e.g.,
+            x_4 >= 0. In this example 4 would not be part of the list, but maybe 3, if it doesn't have
+            a positivity constraint. This list can be used to find which variables of the standardized problem
+            represent x^-.
+        slack_var_count: Count of the number of slack variables
+            that need to be introduced to replace inequalities with equalities.
+        real_constraints: Constraints of original problem without
+            simple positivity-constraints, e.g. x_4>=0.
+    """
+    original_n: int
+    indices_of_non_positive_constrained_vars: np.ndarray
+    slack_var_count: int
+    real_constraints: Sequence[LinearConstraint]
+
+    def calc_standardized_n(self) -> int:
+        """
+        Calculates the dimensionality of the standardized problem.
+
+        Returns:
+            Integer for dimensionality of standardized problem.
+        """
+        return self.original_n + len(self.indices_of_non_positive_constrained_vars) + self.slack_var_count
+
+    def destandardize_x(self, x: np.ndarray) -> np.ndarray:
+        """
+        Destandardizes x based on the original problem.
+
+        :param x: x in terms of standardized problem, containing x+, x- and slack variables.
+
+        Returns:
+            x in terms of the original problem
+        """
+        n = self.original_n
+
+        x_plus = x[:n] # take x_+ part
+        x_neg = x[n:n + len(self.indices_of_non_positive_constrained_vars)]
+
+        # subtract x_- from x_+ to get x
+        x_plus[self.indices_of_non_positive_constrained_vars] -= x_neg
+
+        return x_plus
+
+    @classmethod
+    def from_pre_standardized(cls, problem: 'LinearConstraintsProblem') -> 'StandardizingMetaInfo':
+        """
+        Factory method to create standardizing meta info for a problem that is already 
+        standardized. This represents a default instance in the sense of a non-standardized meta info.
+        
+        :param problem: Problem that is already in standardized form.
+        Returns:
+            Standardizing meta info for problem.
+        """
+        return StandardizingMetaInfo(problem.n, np.empty(0, dtype=int), 0, problem.constraints)
+
+
+@dataclass
 class LinearConstraintsProblem(MinimizationProblem):
     """
     Data class containing all necessary information of a minimization problem to support
@@ -111,22 +175,32 @@ class LinearConstraintsProblem(MinimizationProblem):
     def __post_init__(self):
         self.A, self.b = combine_linear([constraint.c for constraint in self.constraints])
 
-    def standardized_constraints(self) -> Tuple[Sequence[LinearConstraint], np.ndarray, int]:
+    def standardized_constraints(self) -> Tuple[Sequence[LinearConstraint], StandardizingMetaInfo]:
         """Return tuple of List[standardized constraints], np.ndarray[non-pos c. indices] and number of slack variables.
 
         Returns:
-            (List of standardized constraints, np.ndarray of non-positively constrained indices and number of slack variables.)
+            (List of standardized constraints, meta info required for destandardizing)
         """
-        non_positive_constrained_idx, real_constraints, slack_var_count = self._non_positively_constrained()
+        standardizing_meta_info = self._extract_standardizing_meta_info()
 
         # Convert non-positivity-constraints to standard form.
-        standard_constraints = self._to_standard_form(non_positive_constrained_idx, real_constraints, slack_var_count)
+        standard_constraints = self._to_standard_form(standardizing_meta_info)
 
-        return standard_constraints, non_positive_constrained_idx, slack_var_count
+        return standard_constraints, standardizing_meta_info
 
     @staticmethod
-    def _to_standard_form(non_positive_constrained_idx, real_constraints, slack_var_count):
-        # TODO: Doc
+    def _to_standard_form(standardizing_meta_info: StandardizingMetaInfo) -> Sequence[LinearConstraint]:
+        """
+        Converts the given constraints to standard form as described in 13.41.
+
+        Returns:
+            Sequence of standardized constraints.
+        """
+
+        # unpack meta info for easy access
+        indices_of_non_positive_constrained_vars = standardizing_meta_info.indices_of_non_positive_constrained_vars
+        slack_var_count = standardizing_meta_info.slack_var_count
+        real_constraints = standardizing_meta_info.real_constraints
 
         standard_constraints = []
         slack_var_idx = 0
@@ -135,14 +209,15 @@ class LinearConstraintsProblem(MinimizationProblem):
             a = constraint.c.a
             b = constraint.c.b
 
-            # Multiply `a` and `b` with -1 if we have a greater than or equal sign.
+            # Multiply `a` and `b` with -1 if we have a greater than or equal sign
+            # to first convert the GE constraint to a LE constraint.
             if constraint.equation_type == EquationType.GE:
                 a *= -1
                 b *= -1
 
             # All non-positivity-constraint indices need to be added with a x^- case,
             # as we require all variables to have positivity constraints at the end.
-            neg_a = -a[non_positive_constrained_idx]
+            neg_a = -a[indices_of_non_positive_constrained_vars]
 
             # Create constraint coefficients e for slack variable, 
             # if we need one to replace an inequality.
@@ -157,28 +232,33 @@ class LinearConstraintsProblem(MinimizationProblem):
             new_a = np.concatenate((a, neg_a, e))
 
             standard_constraints.append(LinearConstraint(
-                c=LinearCallable(a=new_a, b=constraint.c.b),
+                c=LinearCallable(a=new_a, b=b),
                 equation_type=EquationType.EQ))
 
         return standard_constraints
 
-    def _non_positively_constrained(self):
-        # TODO: Doc
+    def _extract_standardizing_meta_info(self) -> StandardizingMetaInfo:
+        """
+        Extracts meta info required for standardizing and destandardizing.
+
+        Returns:
+            Meta info required for standardizing/destandardizing
+        """
 
         real_constraints = []
-        non_positive_constrained_idx = np.arange(self.n)  # for start, assume none is positivity-constrained
+        indices_of_non_positive_constrained_vars = np.arange(self.n)  # for start, assume none is positivity-constrained
         slack_var_count = 0
 
-        for i, constraint in enumerate(self.constraints):
+        for constraint in self.constraints:
             idx = constraint.positivity_constraint_idx()
             if idx is None:
-
                 # Per inequality, one slack variable is needed.
                 slack_var_count += constraint.equation_type != EquationType.EQ
 
                 real_constraints.append(constraint)
             else:
                 # consider as positivity-constrained, remove from non-pos.-constr. list
-                non_positive_constrained_idx = non_positive_constrained_idx[non_positive_constrained_idx != idx]
+                indices_of_non_positive_constrained_vars = indices_of_non_positive_constrained_vars[
+                    indices_of_non_positive_constrained_vars != idx]
 
-        return non_positive_constrained_idx, real_constraints, slack_var_count
+        return StandardizingMetaInfo(self.n, indices_of_non_positive_constrained_vars, slack_var_count, real_constraints)
