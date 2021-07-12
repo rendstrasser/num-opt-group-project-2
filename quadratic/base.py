@@ -1,3 +1,4 @@
+
 from random import sample
 from typing import Tuple, List
 
@@ -119,4 +120,3 @@ def kkt_matrix(problem: QuadraticProblem) -> Tuple[np.ndarray, np.ndarray]:
     right = np.block([-c, b])
 
     return left, right
-
