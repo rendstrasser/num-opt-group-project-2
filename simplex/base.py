@@ -2,7 +2,6 @@ import numpy as np
 from typing import Tuple
 
 from simplex.linear_problem import LinearProblem
-from shared.minimization_problem import LinearConstraintsProblem
 from shared.solve_linear_system import solve
 from shared.minimization_problem import LinearConstraintsProblem, StandardizingMetaInfo
 
@@ -42,11 +41,8 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
         c_b = problem.c[basis]
         c_n = problem.c[non_basis]
 
-        # B_inv = np.linalg.inv(B)
-
         if i == 0: # only necessary for initial run
             x_b = solve(B, problem.b)
-            # x_b = B_inv @ problem.b
 
         # lambda_ = B_inv.T @ c_b
         lambda_ = solve(B.T, c_b)
@@ -61,7 +57,6 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
 
         q = non_basis[np.argmin(s_n)]
         A_q = problem.A[:, q].flatten()
-        # d = B_inv @ A_q
         d = solve(B, A_q)
 
         if np.all(d <= 0):
