@@ -57,9 +57,6 @@ def sample_ineq_qp(sample_ineq_qp_params) -> QuadraticProblem:
 
 
 def test_ineq_qp(sample_ineq_qp):
-
-    pytest.skip()
-    
     x = minimize_quadratic_problem(sample_ineq_qp)
     assert  np.all(np.isclose(x, sample_ineq_qp.solution))
 
@@ -86,3 +83,7 @@ def test_solve_equality_problem(sample_qp):
 def test_phase_1_works_on_qp(sample_qp):
     x = find_x0(sample_qp, standardized=False)
     assert all(constraint.holds(x) for constraint in sample_qp.constraints)
+
+def test_phase_1_ineq(sample_ineq_qp):
+    x = find_x0(sample_ineq_qp, standardized=False)
+    assert all(constraint.holds(x) for constraint in sample_ineq_qp.constraints)

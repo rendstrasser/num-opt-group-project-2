@@ -1,7 +1,7 @@
 """
 MinimizationProblem, relevant functions and implemented methods.
 """
-
+import copy
 from dataclasses import dataclass, field
 from typing import Callable, List, Sequence, Optional, Tuple
 
@@ -255,7 +255,7 @@ class LinearConstraintsProblem(MinimizationProblem):
                 # Per inequality, one slack variable is needed.
                 slack_var_count += constraint.equation_type != EquationType.EQ
 
-                real_constraints.append(constraint)
+                real_constraints.append(copy.deepcopy(constraint))
             else:
                 # consider as positivity-constrained, remove from non-pos.-constr. list
                 indices_of_non_positive_constrained_vars = indices_of_non_positive_constrained_vars[

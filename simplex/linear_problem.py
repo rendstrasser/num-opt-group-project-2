@@ -99,14 +99,16 @@ class LinearProblem(LinearConstraintsProblem):
         e_z = np.ones(shape=m)
         e = np.concatenate((e_x, e_z))
 
+
         x0 = np.zeros(n)
+        # we dont need to look at standardized b as abs(b) will be same even after standardizing
         z0 = np.abs(problem.b)
         xz0 = np.concatenate((x0, z0))
 
         constraints = []
         for i, constraint in enumerate(standardized_constraints):
             E_i = np.eye(m)[i]
-            if problem.b[i] < 0:
+            if constraint.c.b < 0:
                 E_i = -E_i
 
             A_i = constraint.c.a

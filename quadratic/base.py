@@ -1,12 +1,12 @@
 
 from random import sample
-from typing import Tuple, List
+from typing import Tuple, List, Sequence
 
 import numpy as np
 
 from quadratic.quadratic_problem import QuadraticProblem
 from simplex.base import find_x0
-from shared.constraints import combine_linear, LinearConstraint
+from shared.constraints import combine_linear, LinearConstraint, LinearCallable
 
 QP_MAX_ITER: int = 1_000
 
@@ -30,13 +30,19 @@ def min_eq_qp(problem: QuadraticProblem) -> np.ndarray:
     return x
 
 
+def transform_working_set_to_eq_constraints(working_set: Sequence[LinearConstraint]) -> Sequence[LinearConstraint]:
+    return [LinearConstraint(
+        c=LinearCallable(a=c.c.a, b=0),
+        equation_type=c.equation_type) for c in working_set]
+
+
 def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
     x = find_x0(problem, standardized=False)
 
     active_set = problem.active_set_at(x, as_equalities=True)
 
     # Sample ~ 4/5 of the active constraints as equalities.
-    working_set = sample(active_set, k=np.ceil(len(active_set) * 0.8))
+    working_set = sample(active_set, k=int(np.ceil(len(active_set) * 0.8)))
 
     c = problem.c
     G = problem.G
@@ -46,7 +52,9 @@ def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
         # Solve subproblem.
         g = G@x + c
         subproblem = QuadraticProblem(
-            G=G, c=g, constraints=working_set, n=len(G), solution=None, x0=None
+            G=G, c=g,
+            constraints=transform_working_set_to_eq_constraints(working_set),
+            n=len(G), solution=None, x0=None
         )
         p = min_eq_qp(subproblem)
 
