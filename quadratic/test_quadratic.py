@@ -4,6 +4,7 @@ import pytest
 from quadratic.base import minimize_quadratic_problem
 from quadratic.quadratic_problem import QuadraticProblem
 from simplex.base import find_x0
+from shared.constraints import EquationType
 
 
 @pytest.fixture
@@ -36,6 +37,31 @@ def sample_qp(sample_qp_params) -> QuadraticProblem:
     """Fixture returning Example 16.2."""
     G, c, A, b, solution = sample_qp_params
     return QuadraticProblem.from_params(G, c, A, b, solution=solution)
+
+
+@pytest.fixture
+def sample_ineq_qp_params() -> tuple:
+    G = np.eye(2)
+    c = np.zeros(2)
+    A = np.eye(2)
+    b = np.array([1, 3])
+    solution = b
+    return G, c, A, b, solution
+
+
+@pytest.fixture
+def sample_ineq_qp(sample_ineq_qp_params) -> QuadraticProblem:
+    G, c, A, b, solution = sample_ineq_qp_params
+    equation_type_vec = np.repeat(EquationType.GE, 2)
+    return QuadraticProblem.from_params(G, c, A, b, equation_type_vec, solution=solution)
+
+
+def test_ineq_qp(sample_ineq_qp):
+
+    pytest.skip()
+    
+    x = minimize_quadratic_problem(sample_ineq_qp)
+    assert  np.all(np.isclose(x, sample_ineq_qp.solution))
 
 
 def test_combined_params(sample_qp, sample_qp_params):

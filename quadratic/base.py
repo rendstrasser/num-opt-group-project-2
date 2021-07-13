@@ -1,10 +1,12 @@
+
 from random import sample
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 
 from quadratic.quadratic_problem import QuadraticProblem
 from simplex.base import find_x0
+from shared.constraints import combine_linear, LinearConstraint
 
 QP_MAX_ITER: int = 1_000
 
@@ -34,16 +36,56 @@ def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
     active_set = problem.active_set_at(x, as_equalities=True)
 
     # Sample ~ 4/5 of the active constraints as equalities.
-    working_eq_set = sample(active_set, k=np.ceil(len(active_set) * 0.8))
+    working_set = sample(active_set, k=np.ceil(len(active_set) * 0.8))
 
     c = problem.c
     G = problem.G
 
-    for k in range(QP_MAX_ITER):
+    for _ in range(QP_MAX_ITER):
+
+        # Solve subproblem.
+        g = G@x + c
         subproblem = QuadraticProblem(
-            G=G, c=G@x + c, constraints=working_eq_set, n=len(G)
+            G=G, c=g, constraints=working_set, n=len(G), solution=None, x0=None
         )
         p = min_eq_qp(subproblem)
+
+        if np.all(p == 0):
+            A, _ = combine_linear([eq.c for eq in working_set])
+            lambda_vec = np.linalg.solve(A, g)
+            if np.all(lambda_vec >= 0):
+                return x
+            else:
+                least_lambda_index = np.argmin(lambda_vec)
+                del working_set[least_lambda_index]
+        else:
+            blocking_constraints = [constraint for constraint in active_set if constraint not in working_set]
+            alpha = compute_alpha(blocking_constraints, p, x)
+            x += alpha*p
+            if blocking_constraints:
+                working_set.append(blocking_constraints.pop())
+
+    raise TimeoutError(f"Solution not found within {QP_MAX_ITER} steps; current x = {x}")
+
+
+def compute_alpha(blocking_constraints: List[LinearConstraint], p: np.ndarray, x: np.ndarray) -> float:
+    """Compute alpha for Algorithm 16.3 as described in equation (16.41).
+
+    Args:
+        blocking_constraints: List of active constraints which are not in the working set.
+        p: Solution to the subproblem (16.39)
+        x: Current iterate.
+
+    Returns:
+           Alpha (float)
+    """
+    if not blocking_constraints:
+        return 1
+    A, b = combine_linear(blocking_constraints)
+    return min(
+        1,
+        min((b - np.inner(a, x))/np.inner(a, p) for b, a in zip(b, A) if np.inner(a, p) < 0)
+    )
 
 
 def minimize_quadratic_problem(problem: QuadraticProblem) -> np.ndarray:
@@ -78,4 +120,3 @@ def kkt_matrix(problem: QuadraticProblem) -> Tuple[np.ndarray, np.ndarray]:
     right = np.block([-c, b])
 
     return left, right
-
