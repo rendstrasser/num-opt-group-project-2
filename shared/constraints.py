@@ -82,13 +82,16 @@ class LinearConstraint(Constraint):
         if len(nonzero_indices) == 1 and self.c.a[nonzero_indices[0]] == expected_non_zero_elem:
             return nonzero_indices[0]
 
-    def __eq__(self, other: 'LinearConstraint') -> bool:
+    def return_callables(self) -> tuple:
+        return self.c.a, self.c.b
+
+    def equal_callables(self, other: 'Constraint') -> bool:
         return np.all(self.c.a == other.c.a) and self.c.b == other.c.b
 
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:
     """Combine attributes of linear callables into matrix A and vector b.
-
+       working_set_b = [constr.c.b for constr in working_set]
     Args:
         linear_callables (Sequence[LinearCallable]): List of linear callables.
 
@@ -97,18 +100,4 @@ def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarr
     """
     A = np.array([c.a for c in linear_callables], dtype=np.float64)
     b = np.array([c.b for c in linear_callables], dtype=np.float64)
-    return A, b
-
-
-def combine_linear_constraints(constraints: List[LinearConstraint]) -> Tuple[np.ndarray, np.ndarray]:
-    """Combine attributes of Constraints into matrix A and vector b.
-
-    Args:
-        constraints (List[LinearConstraints]): List of linear constraints.
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray]: A and b.
-    """
-    A = np.array([const.c.a for const in constraints], dtype=np.float64)
-    b = np.array([const.c.b for const in constraints], dtype=np.float64)
     return A, b
