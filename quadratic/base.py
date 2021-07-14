@@ -75,7 +75,10 @@ def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
                 del working_set[least_lambda_index]
         else:
             # blocking constraints are all constraints of the problem that are not in the working set
-            blocking_constraints = [constraint for constraint in problem.constraints if constraint not in working_set]
+            print('\n', problem.constraints)
+            print(working_set)
+            blocking_constraints = [constr for constr in problem.constraints if not
+                                    np.any([constr.equal_callables(working_constr) for working_constr in working_set])]
             alpha = compute_alpha(blocking_constraints, p, x)
             x += alpha*p
             if blocking_constraints:
