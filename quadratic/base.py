@@ -6,7 +6,7 @@ import numpy as np
 
 from quadratic.quadratic_problem import QuadraticProblem
 from simplex.base import find_x0
-from shared.constraints import combine_linear, LinearConstraint, LinearCallable
+from shared.constraints import combine_linear, EquationType, LinearConstraint, LinearCallable
 
 QP_MAX_ITER: int = 1_000
 
@@ -61,13 +61,22 @@ def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
         if np.all(p == 0):
             A, _ = combine_linear([eq.c for eq in working_set])
             lambda_vec = np.linalg.solve(A, g)
-            if np.all(lambda_vec >= 0):
+
+            # in the working set we transformed all constraints into equalities, but we want to check for inequalities
+            current_set = [constr for constr in problem.constraints if
+                           np.any([constr.equal_callables(working_constr) for working_constr in working_set])]
+            _is_ineq_constr = [eq.equation_type != EquationType.EQ for eq in current_set]
+            lambda_vec = lambda_vec[_is_ineq_constr]
+
+            if np.all(lambda_vec >= 0) and len(lambda_vec) != 0:
                 return x
             else:
                 least_lambda_index = np.argmin(lambda_vec)
                 del working_set[least_lambda_index]
         else:
-            blocking_constraints = [constraint for constraint in active_set if constraint not in working_set]
+            # blocking constraints are all constraints of the problem that are not in the working set
+            blocking_constraints = [constr for constr in problem.constraints if not
+                                    np.any([constr.equal_callables(working_constr) for working_constr in working_set])]
             alpha = compute_alpha(blocking_constraints, p, x)
             x += alpha*p
             if blocking_constraints:
@@ -89,7 +98,8 @@ def compute_alpha(blocking_constraints: List[LinearConstraint], p: np.ndarray, x
     """
     if not blocking_constraints:
         return 1
-    A, b = combine_linear(blocking_constraints)
+    blocking_constraints_as_callables = [constraint.c for constraint in blocking_constraints]
+    A, b = combine_linear(blocking_constraints_as_callables)
     return min(
         1,
         min((b - np.inner(a, x))/np.inner(a, p) for b, a in zip(b, A) if np.inner(a, p) < 0)

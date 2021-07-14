@@ -8,7 +8,6 @@ from typing import Callable, Sequence, Tuple, Optional
 from enum import Enum
 from operator import __le__, __ge__, __eq__
 
-
 import numpy as np
 
 
@@ -76,15 +75,15 @@ class LinearConstraint(Constraint):
         if self.equation_type == EquationType.EQ:
             # only inequality constraints can represent a positivity constraint
             return None
-              
+
         nonzero_indices = np.nonzero(self.c.a)
         expected_non_zero_elem = 1 if self.equation_type == EquationType.GE else -1
 
         if len(nonzero_indices) == 1 and self.c.a[nonzero_indices[0]] == expected_non_zero_elem:
             return nonzero_indices[0]
 
-    def __eq__(self, other: 'LinearConstraint') -> bool:
-        return self.c == other.c
+    def equal_callables(self, other: 'Constraint') -> bool:
+        return np.all(self.c.a == other.c.a) and self.c.b == other.c.b
 
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:
