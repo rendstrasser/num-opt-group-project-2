@@ -88,7 +88,7 @@ class LinearConstraint(Constraint):
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:
     """Combine attributes of linear callables into matrix A and vector b.
-       working_set_b = [constr.c.b for constr in working_set]
+
     Args:
         linear_callables (Sequence[LinearCallable]): List of linear callables.
 
