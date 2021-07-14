@@ -4,7 +4,7 @@ File containing Implementations of basic constraints and their methods.
 
 from copy import copy
 from dataclasses import dataclass
-from typing import Callable, Sequence, Tuple, Optional, List
+from typing import Callable, Sequence, Tuple, Optional
 from enum import Enum
 from operator import __le__, __ge__, __eq__
 
