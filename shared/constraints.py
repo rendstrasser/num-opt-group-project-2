@@ -4,10 +4,9 @@ File containing Implementations of basic constraints and their methods.
 
 from copy import copy
 from dataclasses import dataclass
-from typing import Callable, Sequence, Tuple, Optional
+from typing import Callable, Sequence, Tuple, Optional, List
 from enum import Enum
 from operator import __le__, __ge__, __eq__
-
 
 import numpy as np
 
@@ -76,7 +75,7 @@ class LinearConstraint(Constraint):
         if self.equation_type == EquationType.EQ:
             # only inequality constraints can represent a positivity constraint
             return None
-              
+
         nonzero_indices = np.nonzero(self.c.a)
         expected_non_zero_elem = 1 if self.equation_type == EquationType.GE else -1
 
@@ -84,7 +83,7 @@ class LinearConstraint(Constraint):
             return nonzero_indices[0]
 
     def __eq__(self, other: 'LinearConstraint') -> bool:
-        return self.c == other.c
+        return np.all(self.c.a == other.c.a) and self.c.b == other.c.b
 
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:
@@ -98,4 +97,18 @@ def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarr
     """
     A = np.array([c.a for c in linear_callables], dtype=np.float64)
     b = np.array([c.b for c in linear_callables], dtype=np.float64)
+    return A, b
+
+
+def combine_linear_constraints(constraints: List[LinearConstraint]) -> Tuple[np.ndarray, np.ndarray]:
+    """Combine attributes of Constraints into matrix A and vector b.
+
+    Args:
+        constraints (List[LinearConstraints]): List of linear constraints.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: A and b.
+    """
+    A = np.array([const.c.a for const in constraints], dtype=np.float64)
+    b = np.array([const.c.b for const in constraints], dtype=np.float64)
     return A, b
