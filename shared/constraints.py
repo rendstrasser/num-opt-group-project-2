@@ -82,9 +82,6 @@ class LinearConstraint(Constraint):
         if len(nonzero_indices) == 1 and self.c.a[nonzero_indices[0]] == expected_non_zero_elem:
             return nonzero_indices[0]
 
-    def return_callables(self) -> tuple:
-        return self.c.a, self.c.b
-
     def equal_callables(self, other: 'Constraint') -> bool:
         return np.all(self.c.a == other.c.a) and self.c.b == other.c.b
 
