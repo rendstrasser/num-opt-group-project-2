@@ -24,7 +24,8 @@ def min_eq_qp(problem: QuadraticProblem) -> np.ndarray:
     kkt, kkt_solution = kkt_matrix(problem)
 
     # TODO: Use some other solving technique.
-    x_lambda = np.linalg.solve(kkt, kkt_solution)
+    # x_lambda = np.linalg.solve(kkt, kkt_solution)
+    x_lambda = solve_kkt_schur(problem, kkt_solution)
 
     x = x_lambda[:len(problem.G)]
     return x
@@ -138,3 +139,48 @@ def kkt_matrix(problem: QuadraticProblem) -> Tuple[np.ndarray, np.ndarray]:
     right = np.block([-c, b])
 
     return left, right
+
+
+def solve_kkt_schur(problem: QuadraticProblem, kkt_solution: np.ndarray):
+    """Computes solution to KKT-matrix equation using the Schur-complement method (page 455) using the inverse
+    of the KKT-Matrix (16.16)
+
+    Args:
+        problem: QuadraticProblem to compute the inverse KKT-matrix
+        kkt_solution: np.ndarray "b" in Ax=b
+
+    Returns:
+        np.ndarray: solution to Ax=b where A is the KKT-matrix and b the KKT-solution
+    """
+
+    def get_kkt_inv(problem: QuadraticProblem):
+        """Return inverse of KKT-matrix as defined in 16.16.
+
+        Args:
+            problem: QuadraticProblem to compute the inverse KKT-matrix
+
+        Returns:
+            np.ndarray: inverse of KKT-matrix
+        """
+
+        A = problem.A
+        G = problem.G
+
+        G_inv = np.linalg.inv(G)
+        AGAT = np.linalg.inv(A @ G_inv @ A.T)
+
+        C = G_inv - G_inv @ A.T @ AGAT @ A @ G_inv
+        E = G_inv @ A.T @ AGAT
+        F = - AGAT
+
+        kkt_inv = np.block([
+            [C, E],
+            [E.T, F]
+        ])
+
+        return kkt_inv
+
+    kkt_inv = get_kkt_inv(problem)
+    x_lambda = kkt_inv @ kkt_solution
+
+    return x_lambda
