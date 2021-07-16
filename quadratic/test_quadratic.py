@@ -4,7 +4,7 @@ import pytest
 from quadratic.base import minimize_quadratic_problem
 from quadratic.quadratic_problem import QuadraticProblem
 from simplex.base import find_x0
-from shared.constraints import EquationType
+from shared.constraints import EquationType, LinearConstraint, LinearCallable
 
 
 @pytest.fixture
@@ -56,8 +56,34 @@ def sample_ineq_qp(sample_ineq_qp_params) -> QuadraticProblem:
     return QuadraticProblem.from_params(G, c, A, b, equation_type_vec, solution=solution)
 
 
+def test_linearly_dependent_constraints():
+    pytest.skip()
+
+    G = np.array([[2, 0], [0, 2]])
+    c = np.array([-4, -4])
+
+    a1 = np.array([1, 1], dtype=np.float64)
+    a2 = np.array([1, -2], dtype=np.float64)
+    a3 = np.array([-1, -1], dtype=np.float64)
+    a4 = np.array([-2, 1], dtype=np.float64)
+    constraints = np.array([
+        LinearConstraint(LinearCallable(a=a1, b=2), equation_type=EquationType.LE),
+        LinearConstraint(LinearCallable(a=a2, b=2), equation_type=EquationType.LE),
+        LinearConstraint(LinearCallable(a=a3, b=1), equation_type=EquationType.LE),
+        LinearConstraint(LinearCallable(a=a4, b=2), equation_type=EquationType.LE),
+    ])
+
+    solution = np.array([1, 1], dtype=np.float64)
+
+    problem = QuadraticProblem(G=G, c=c, n=2, constraints=constraints, x0=None, solution=solution)
+
+    x, _ = minimize_quadratic_problem(problem)
+
+    assert np.all(x == problem.solution)
+
+
 def test_ineq_qp(sample_ineq_qp):
-    x = minimize_quadratic_problem(sample_ineq_qp)
+    x, _ = minimize_quadratic_problem(sample_ineq_qp)
     assert  np.all(np.isclose(x, sample_ineq_qp.solution))
 
 
@@ -76,7 +102,7 @@ def test_no_indefinite_G(sample_qp_params):
 
 
 def test_solve_equality_problem(sample_qp):
-    x = minimize_quadratic_problem(sample_qp)
+    x, _ = minimize_quadratic_problem(sample_qp)
     assert np.all(np.isclose(x, sample_qp.solution))
 
 

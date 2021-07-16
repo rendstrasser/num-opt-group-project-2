@@ -42,10 +42,14 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
         c_n = problem.c[non_basis]
 
         if i == 0: # only necessary for initial run
-            x_b = solve(B, problem.b)
+            # buggy atm
+            x_b = np.linalg.solve(B, problem.b)
+            #x_b = solve(B, problem.b)
 
-        # lambda_ = B_inv.T @ c_b
-        lambda_ = solve(B.T, c_b)
+        lambda_ = np.linalg.solve(B.T, c_b)
+        # buggy atm
+        #lambda_ = solve(B.T, c_b)
+
         s_n = c_n - N.T @ lambda_
 
         if np.all(s_n >= 0):
@@ -57,7 +61,9 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
 
         q = non_basis[np.argmin(s_n)]
         A_q = problem.A[:, q].flatten()
-        d = solve(B, A_q)
+        d = np.linalg.solve(B, A_q)
+        # buggy atm
+        #d = solve(B, A_q)
 
         if np.all(d <= 0):
             raise ValueError("Problem is unbounded")

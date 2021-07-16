@@ -1,5 +1,4 @@
 
-from random import sample
 from typing import Tuple, List, Sequence
 
 import numpy as np
@@ -11,7 +10,7 @@ from shared.constraints import combine_linear, EquationType, LinearConstraint, L
 QP_MAX_ITER: int = 1_000
 
 
-def min_eq_qp(problem: QuadraticProblem) -> np.ndarray:
+def min_eq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     """Compute minimizer of equality constrained problem,
     by solving (16.4).
 
@@ -19,16 +18,13 @@ def min_eq_qp(problem: QuadraticProblem) -> np.ndarray:
         problem: Equality constrained problem.
 
     Returns:
-        np.ndarray: Minimizer x_star, which is the solution to (16.4).
+        Minimizer x_star, which is the solution to (16.4) and iteration count (hardcoded to 1 here).
     """
-    kkt, kkt_solution = kkt_matrix(problem)
-
-    # TODO: Use some other solving technique.
-    # x_lambda = np.linalg.solve(kkt, kkt_solution)
+    kkt_solution = np.block([-problem.c, problem.b])
     x_lambda = solve_kkt_schur(problem, kkt_solution)
 
     x = x_lambda[:len(problem.G)]
-    return x
+    return x, 1
 
 
 def transform_working_set_to_eq_constraints(working_set: Sequence[LinearConstraint]) -> Sequence[LinearConstraint]:
@@ -37,19 +33,19 @@ def transform_working_set_to_eq_constraints(working_set: Sequence[LinearConstrai
         equation_type=c.equation_type) for c in working_set]
 
 
-def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
+def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     x = find_x0(problem, standardized=False)
 
     active_set = problem.active_set_at(x, as_equalities=True)
 
     # Sample ~ 4/5 of the active constraints as equalities.
-    working_set = sample(active_set, k=int(np.ceil(len(active_set) * 0.8)))
+    #working_set = sample(active_set, k=int(np.ceil(len(active_set) * 0.8)))
+    working_set = [active_set[0]]
 
     c = problem.c
     G = problem.G
 
-    for _ in range(QP_MAX_ITER):
-
+    for i in range(QP_MAX_ITER):
         # Solve subproblem.
         g = G@x + c
         subproblem = QuadraticProblem(
@@ -57,7 +53,7 @@ def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
             constraints=transform_working_set_to_eq_constraints(working_set),
             n=len(G), solution=None, x0=None
         )
-        p = min_eq_qp(subproblem)
+        p, _ = min_eq_qp(subproblem)
 
         if np.all(p == 0):
             A, _ = combine_linear([eq.c for eq in working_set])
@@ -70,15 +66,15 @@ def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
             lambda_vec = lambda_vec[_is_ineq_constr]
 
             if np.all(lambda_vec >= 0) and len(lambda_vec) != 0:
-                return x
+                return x, i + 1
             else:
                 least_lambda_index = np.argmin(lambda_vec)
                 del working_set[least_lambda_index]
         else:
             # blocking constraints are all constraints of the problem that are not in the working set
-            blocking_constraints = [constr for constr in problem.constraints if not
+            non_working_set_constraints = [constr for constr in problem.constraints if not
                                     np.any([constr.equal_callables(working_constr) for working_constr in working_set])]
-            alpha = compute_alpha(blocking_constraints, p, x)
+            alpha, blocking_constraints = compute_alpha_and_blocking_constraints(non_working_set_constraints, p, x)
             x += alpha*p
             if blocking_constraints:
                 working_set.append(blocking_constraints.pop())
@@ -86,59 +82,39 @@ def min_ineq_qp(problem: QuadraticProblem) -> np.ndarray:
     raise TimeoutError(f"Solution not found within {QP_MAX_ITER} steps; current x = {x}")
 
 
-def compute_alpha(blocking_constraints: List[LinearConstraint], p: np.ndarray, x: np.ndarray) -> float:
-    """Compute alpha for Algorithm 16.3 as described in equation (16.41).
+def compute_alpha_and_blocking_constraints(
+        non_working_set_constraints: List[LinearConstraint],
+        p: np.ndarray,
+        x: np.ndarray) -> Tuple[float, List[LinearConstraint]]:
+    """Compute alpha and blocking constraints for Algorithm 16.3 as described in equation (16.41).
 
     Args:
-        blocking_constraints: List of active constraints which are not in the working set.
+        non_working_set_constraints: List of constraints which are not in the working set.
         p: Solution to the subproblem (16.39)
         x: Current iterate.
 
     Returns:
            Alpha (float)
     """
-    if not blocking_constraints:
-        return 1
-    blocking_constraints_as_callables = [constraint.c for constraint in blocking_constraints]
-    A, b = combine_linear(blocking_constraints_as_callables)
-    return min(
-        1,
-        min((b - np.inner(a, x))/np.inner(a, p) for b, a in zip(b, A) if np.inner(a, p) < 0)
-    )
+    if not non_working_set_constraints:
+        return 1, []
+    non_working_set_constraints_as_callables = [constraint.c for constraint in non_working_set_constraints]
+    A, b = combine_linear(non_working_set_constraints_as_callables)
+
+    alpha = 1
+    blocking_constraints = []
+    for i, (b_i, a_i) in enumerate(zip(b, A)):
+        blocking_term = (b_i - np.inner(a_i, x))/np.inner(a_i, p)
+        if blocking_term < 1:
+            blocking_constraints.append(non_working_set_constraints[i])
+            alpha = min(alpha, blocking_term)
+
+    return alpha, blocking_constraints
 
 
-def minimize_quadratic_problem(problem: QuadraticProblem) -> np.ndarray:
+def minimize_quadratic_problem(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     """Compute minimizer of quadratic problem."""
     return min_ineq_qp(problem) if problem.is_inequality_constrained else min_eq_qp(problem)
-
-
-def kkt_matrix(problem: QuadraticProblem) -> Tuple[np.ndarray, np.ndarray]:
-    """Return KKT-matrix system as defined in equation (16.4).
-
-    Args:
-        problem: QuadraticProblem to compute the KKT-matrix from
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray]: Left matrix [[G, -A.T], [A, 0]]
-                                       and right vector [-c, b] of the equation.
-    """
-
-    A = problem.A
-    G = problem.G
-    c = problem.c
-    b = problem.b
-
-    min_A = min(A.shape)
-    zero = np.zeros(shape=(min_A, min_A))
-
-    left = np.block([
-        [G, -A.T],
-        [A, zero]
-    ])
-
-    right = np.block([-c, b])
-
-    return left, right
 
 
 def solve_kkt_schur(problem: QuadraticProblem, kkt_solution: np.ndarray):
