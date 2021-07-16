@@ -32,39 +32,9 @@ def min_eq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
         Minimizer x_star, which is the solution to (16.4) and iteration count (hardcoded to 1 here).
     """
 
-    def kkt_matrix(problem: QuadraticProblem) -> Tuple[np.ndarray, np.ndarray]:
-        """Return KKT-matrix system as defined in equation (16.4).
-        Args:
-            problem: QuadraticProblem to compute the KKT-matrix from
-        Returns:
-            Tuple[np.ndarray, np.ndarray]: Left matrix [[G, -A.T], [A, 0]]
-                                           and right vector [-c, b] of the equation.
-        """
-
-        A = problem.A
-        G = problem.G
-        c = problem.c
-        b = problem.b
-
-        min_A = min(A.shape)
-        zero = np.zeros(shape=(min_A, min_A))
-
-        left = np.block([
-            [G, -A.T],
-            [A, zero]
-        ])
-
-        right = np.block([-c, b])
-
-        return left, right
-
-    kkt, kkt_solution = kkt_matrix(problem)
-
     kkt_solution = np.block([-problem.c, problem.b])
 
-    x_lambda = np.linalg.solve(kkt, kkt_solution)
-
-    #x_lambda = solve_kkt_schur(problem, kkt_solution)
+    x_lambda = solve_kkt_schur(problem, kkt_solution)
 
     x = x_lambda[:len(problem.G)]
     return x, 1
