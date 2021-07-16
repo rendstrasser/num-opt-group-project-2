@@ -32,12 +32,19 @@ def min_eq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
         Minimizer x_star, which is the solution to (16.4) and iteration count (hardcoded to 1 here).
     """
 
+    if len(problem.constraints) == 0:
+        return min_no_constraint_qp(problem)
+
     kkt_solution = np.block([-problem.c, problem.b])
 
     x_lambda = solve_kkt_schur(problem, kkt_solution)
 
     x = x_lambda[:len(problem.G)]
     return x, 1
+
+def min_no_constraint_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
+    p = np.linalg.solve(problem.G, -problem.c)
+    return p, 1
 
 
 def transform_working_set_to_eq_constraints(working_set: Sequence[LinearConstraint]) -> Sequence[LinearConstraint]:
@@ -49,11 +56,8 @@ def transform_working_set_to_eq_constraints(working_set: Sequence[LinearConstrai
 def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     x = find_x0(problem, standardized=False)
 
-    active_set = problem.active_set_at(x, as_equalities=True)
-
-    # Sample ~ 4/5 of the active constraints as equalities.
-    #working_set = sample(active_set, k=int(np.ceil(len(active_set) * 0.8)))
-    working_set = [active_set[0]]
+    # we start with an empty working set to ensure linear independence in the constraints from here on
+    working_set = []
 
     c = problem.c
     G = problem.G
@@ -70,7 +74,7 @@ def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
 
         if np.all(p == 0):
             A, _ = combine_linear([eq.c for eq in working_set])
-            lambda_vec = np.linalg.solve(A, g)
+            lambda_vec = np.linalg.lstsq(A.T, g)[0]
 
             # in the working set we transformed all constraints into equalities, but we want to check for inequalities
             current_set = [constr for constr in problem.constraints if

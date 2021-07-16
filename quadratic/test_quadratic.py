@@ -57,8 +57,6 @@ def sample_ineq_qp(sample_ineq_qp_params) -> QuadraticProblem:
 
 
 def test_linearly_dependent_constraints():
-    pytest.skip()
-
     G = np.array([[2, 0], [0, 2]])
     c = np.array([-4, -4])
 
@@ -79,7 +77,7 @@ def test_linearly_dependent_constraints():
 
     x, _ = minimize_quadratic_problem(problem)
 
-    assert np.all(x == problem.solution)
+    assert np.all(np.isclose(x, problem.solution))
 
 
 def test_ineq_qp(sample_ineq_qp):
