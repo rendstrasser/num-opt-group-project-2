@@ -3,6 +3,7 @@ import pytest
 
 from quadratic.base import minimize_quadratic_problem
 from quadratic.quadratic_problem import QuadraticProblem
+from quadratic.problems import create_exercise_example_16_1, create_another_example, create_example_16_4
 from simplex.base import find_x0
 from shared.constraints import EquationType, LinearConstraint, LinearCallable
 
@@ -57,69 +58,21 @@ def sample_ineq_qp(sample_ineq_qp_params) -> QuadraticProblem:
 
 
 def test_linearly_dependent_constraints():
-    G = np.array([[2, 0], [0, 2]])
-    c = np.array([-4, -4])
-
-    a1 = np.array([1, 1], dtype=np.float64)
-    a2 = np.array([1, -2], dtype=np.float64)
-    a3 = np.array([-1, -1], dtype=np.float64)
-    a4 = np.array([-2, 1], dtype=np.float64)
-    constraints = np.array([
-        LinearConstraint(LinearCallable(a=a1, b=2), equation_type=EquationType.LE),
-        LinearConstraint(LinearCallable(a=a2, b=2), equation_type=EquationType.LE),
-        LinearConstraint(LinearCallable(a=a3, b=1), equation_type=EquationType.LE),
-        LinearConstraint(LinearCallable(a=a4, b=2), equation_type=EquationType.LE),
-    ])
-
-    solution = np.array([1, 1], dtype=np.float64)
-
-    problem = QuadraticProblem(G=G, c=c, n=2, constraints=constraints, x0=None, solution=solution)
+    problem = create_another_example()
 
     x, _ = minimize_quadratic_problem(problem)
 
     assert np.all(np.isclose(x, problem.solution))
 
 def test_another_problem():
-    G = np.array([[2, 0], [0, 2]])
-    c = np.array([-2, -5])
-
-    a1 = np.array([1, -2], dtype=np.float64)
-    a2 = np.array([-1, -2], dtype=np.float64)
-    a3 = np.array([-1, 2], dtype=np.float64)
-    a4 = np.array([1, 0], dtype=np.float64)
-    a5 = np.array([0, 1], dtype=np.float64)
-    constraints = np.array([
-        LinearConstraint(LinearCallable(a=a1, b=-2), equation_type=EquationType.GE),
-        LinearConstraint(LinearCallable(a=a2, b=-6), equation_type=EquationType.GE),
-        LinearConstraint(LinearCallable(a=a3, b=-2), equation_type=EquationType.GE),
-        LinearConstraint(LinearCallable(a=a4, b=0), equation_type=EquationType.GE),
-        LinearConstraint(LinearCallable(a=a5, b=0), equation_type=EquationType.GE),
-    ])
-
-    solution = np.array([1.4, 1.7], dtype=np.float64)
-
-    problem = QuadraticProblem(G=G, c=c, n=2, constraints=constraints, x0=None, solution=solution)
+    problem = create_example_16_4()
 
     x, _ = minimize_quadratic_problem(problem)
 
     assert np.all(np.isclose(x, problem.solution))
 
 def test_exercise_16_1_problem():
-    G = np.array([[8, 2], [2, 2]])
-    c = np.array([2, 3])
-
-    a1 = np.array([1, -1], dtype=np.float64)
-    a2 = np.array([1, 1], dtype=np.float64)
-    a3 = np.array([1, 0], dtype=np.float64)
-    constraints = np.array([
-        LinearConstraint(LinearCallable(a=a1, b=0), equation_type=EquationType.GE),
-        LinearConstraint(LinearCallable(a=a2, b=4), equation_type=EquationType.LE),
-        LinearConstraint(LinearCallable(a=a3, b=3), equation_type=EquationType.LE)
-    ])
-
-    solution = np.array([1/6,-10/6], dtype=np.float64)
-
-    problem = QuadraticProblem(G=G, c=c, n=2, constraints=constraints, x0=None, solution=solution)
+    problem = create_exercise_example_16_1()
 
     x, _ = minimize_quadratic_problem(problem)
 
