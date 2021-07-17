@@ -73,16 +73,19 @@ def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
         p, _ = min_eq_qp(subproblem)
 
         if np.allclose(p, np.zeros_like(p)):
-            A, _ = combine_linear([eq.c for eq in working_set])
-            lambda_vec = np.linalg.lstsq(A.T, g)[0]
+            if len(working_set) == 0:
+                lambda_vec = np.empty(shape=0)
+            else:
+                A, _ = combine_linear([eq.c for eq in working_set])
+                lambda_vec = np.linalg.lstsq(A.T, g)[0]
 
-            # in the working set we transformed all constraints into equalities, but we want to check for inequalities
-            current_set = [constr for constr in problem.constraints if
-                           np.any([constr.equal_callables(working_constr) for working_constr in working_set])]
-            _is_ineq_constr = [eq.equation_type != EquationType.EQ for eq in current_set]
-            lambda_vec = lambda_vec[_is_ineq_constr]
+                # in the working set we transformed all constraints into equalities, but we want to check for inequalities
+                current_set = [constr for constr in problem.constraints if
+                               np.any([constr.equal_callables(working_constr) for working_constr in working_set])]
+                _is_ineq_constr = [eq.equation_type != EquationType.EQ for eq in current_set]
+                lambda_vec = lambda_vec[_is_ineq_constr]
 
-            if np.all(lambda_vec >= 0) and len(lambda_vec) != 0:
+            if np.all(lambda_vec >= 0):
                 return x, i + 1
             else:
                 least_lambda_index = np.argmin(lambda_vec)

@@ -76,7 +76,7 @@ class LinearConstraint(Constraint):
             # only inequality constraints can represent a positivity constraint
             return None
 
-        nonzero_indices = np.nonzero(self.c.a)
+        nonzero_indices = np.nonzero(self.c.a)[0]
         expected_non_zero_elem = 1 if self.equation_type == EquationType.GE else -1
 
         if len(nonzero_indices) == 1 and self.c.a[nonzero_indices[0]] == expected_non_zero_elem:

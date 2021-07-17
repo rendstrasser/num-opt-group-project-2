@@ -104,6 +104,27 @@ def test_another_problem():
 
     assert np.all(np.isclose(x, problem.solution))
 
+def test_exercise_16_1_problem():
+    G = np.array([[8, 2], [2, 2]])
+    c = np.array([2, 3])
+
+    a1 = np.array([1, -1], dtype=np.float64)
+    a2 = np.array([1, 1], dtype=np.float64)
+    a3 = np.array([1, 0], dtype=np.float64)
+    constraints = np.array([
+        LinearConstraint(LinearCallable(a=a1, b=0), equation_type=EquationType.GE),
+        LinearConstraint(LinearCallable(a=a2, b=4), equation_type=EquationType.LE),
+        LinearConstraint(LinearCallable(a=a3, b=3), equation_type=EquationType.LE)
+    ])
+
+    solution = np.array([1/6,-10/6], dtype=np.float64)
+
+    problem = QuadraticProblem(G=G, c=c, n=2, constraints=constraints, x0=None, solution=solution)
+
+    x, _ = minimize_quadratic_problem(problem)
+
+    assert np.all(np.isclose(x, problem.solution))
+
 
 def test_ineq_qp(sample_ineq_qp):
     x, _ = minimize_quadratic_problem(sample_ineq_qp)
