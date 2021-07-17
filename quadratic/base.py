@@ -72,7 +72,7 @@ def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
         )
         p, _ = min_eq_qp(subproblem)
 
-        if np.all(p == 0):
+        if np.allclose(p, np.zeros_like(p)):
             A, _ = combine_linear([eq.c for eq in working_set])
             lambda_vec = np.linalg.lstsq(A.T, g)[0]
 
