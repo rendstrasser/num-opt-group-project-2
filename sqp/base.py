@@ -12,7 +12,7 @@ MAX_ITER_SQP = 10_000
 # should be done
 def minimize_nonlinear_problem(
         original_problem: MinimizationProblem,
-        eta=0.3, tau=0.5, tolerance=1e-5) -> Tuple[np.ndarray, np.ndarray]:
+        eta=0.3, tau=0.99, tolerance=1e-5) -> Tuple[np.ndarray, np.ndarray]:
 
     # we expect inequalities to be greater-than inequalities
     prepared_constraints = [c.as_ge_if_le() for c in original_problem.constraints]
@@ -46,10 +46,17 @@ def minimize_nonlinear_problem(
 
         alpha = 1
         first_wolfe_condition_term = merit_at_x + eta * alpha * dir_gradient_merit
-        while l1_merit(problem.calc_f_at(x + alpha * p), mu, c_norm) > first_wolfe_condition_term:
+        merit_term = l1_merit(problem.calc_f_at(x + alpha * p), mu, c_norm)
+        while merit_term > first_wolfe_condition_term:
             alpha *= tau
-        
+            c = problem.calc_constraints_at(x + alpha * p)
+            c_norm = np.linalg.norm(c, ord=1)
+            merit_term=l1_merit(problem.calc_f_at(x + alpha * p), mu, c_norm)
+
+            first_wolfe_condition_term = merit_at_x + eta * alpha * dir_gradient_merit
+
         x += alpha * p
+
         lambda_ += alpha * p_lambda
 
         f_x = problem.calc_f_at(x)
