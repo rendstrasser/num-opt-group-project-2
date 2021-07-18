@@ -1,35 +1,46 @@
 
 import numpy as np
+from typing import Tuple, Sequence
 
+from quadratic.base import minimize_quadratic_problem
 from shared.minimization_problem import MinimizationProblem
-from shared.constraints import Constraint, LinearCallable, LinearConstraint
+from shared.constraints import Constraint, LinearCallable, LinearConstraint, EquationType, combine_linear
 from quadratic.quadratic_problem import QuadraticProblem
-from typing import Tuple
+
+MAX_ITER_SQP = 10_000
 
 # should be done
-def backtracking_line_search_sqp(
-        problem: MinimizationProblem, 
+def minimize_nonlinear_problem(
+        original_problem: MinimizationProblem,
         eta=0.3, tau=0.5, tolerance=1e-5) -> Tuple[np.ndarray, np.ndarray]:
 
-    assert problem.x0 is not None
+    # we expect inequalities to be greater-than inequalities
+    prepared_constraints = [c.as_ge_if_le() for c in original_problem.constraints]
+    problem = MinimizationProblem(f=original_problem.f, n=original_problem.n, x0=original_problem.x0,
+                               solution=original_problem.solution, constraints=prepared_constraints)
 
     x = problem.x0
+    if x is None:
+        x = np.zeros(shape=problem.n)
+
     lambda_ = np.zeros(shape=len(problem.constraints))
+    lambda_[0] = 1
 
     f_x = problem.calc_f_at(x)
     f_grad = problem.calc_gradient_at(x)
     c = problem.calc_constraints_at(x)
     c_norm = np.linalg.norm(c, ord=1)
     A = problem.calc_constraints_jacobian_at(x)
+    mu = None
 
     # TODO quasi-newton approx 
     L_hessian = problem.calc_lagrangian_hessian_at(x, lambda_)
 
-    while True:
+    for i in range(MAX_ITER_SQP):
         quadr_problem = create_iterate_quadratic_problem(problem, f_x, f_grad, c, A, L_hessian)
         p, l_hat = solve_quadratic(quadr_problem)
         p_lambda = l_hat - lambda_
-        mu = find_mu()
+        mu = find_mu(mu, f_grad, p, L_hessian, c_norm)
 
         merit_at_x = l1_merit(f_x, mu, c_norm)
         dir_gradient_merit = l1_merit_directional_gradient(f_grad, p, mu, c_norm)
@@ -52,15 +63,16 @@ def backtracking_line_search_sqp(
         L_hessian = problem.calc_lagrangian_hessian_at(x, lambda_)
 
         if kkt_fulfilled(problem, x, lambda_, c, tolerance):
-            break
+            return x, lambda_
 
-    return x, lambda_
+    raise TimeoutError(f"SQP ran into timeout with {MAX_ITER_SQP} steps")
 
-# TODO implement quadratic minimization
-def solve_quadratic(problem):
-    p = (1,1,1,1,1)
-    l = (0,0,0)
-    return p, l
+
+def solve_quadratic(problem: QuadraticProblem) -> Tuple[np.ndarray, np.ndarray]:
+    x_solution, _ = minimize_quadratic_problem(problem)
+    lambda_ = find_lambda_of_qp(problem, x_solution)
+
+    return x_solution, lambda_
 
 # should be done
 def find_mu(
@@ -95,6 +107,24 @@ def l1_merit_directional_gradient(
         c_norm: float):
     return f_grad @ p - mu * c_norm
 
+
+def find_lambda_of_qp(
+        problem: QuadraticProblem,
+        x_solution: np.ndarray) -> np.ndarray:
+
+    lambda_ = np.zeros(len(problem.constraints))
+
+    g = problem.G @ x_solution + problem.c
+    active_constraint_mask = np.array([c.as_equality().holds(x_solution) for c in problem.constraints])
+    if np.all(~active_constraint_mask):
+        # no active constraints, all lambda=0
+        return lambda_
+
+    A, _ = combine_linear([c.c for c in problem.constraints[active_constraint_mask]])
+    lambda_[active_constraint_mask] = np.linalg.lstsq(A.T, g)[0]
+
+    return lambda_
+
 # should be done
 def transform_sqp_to_linear_constraint(
         constraint: Constraint, 
@@ -102,8 +132,8 @@ def transform_sqp_to_linear_constraint(
         c_i_grad: np.ndarray):
 
     return LinearConstraint(
-        c=LinearCallable(a=c_i_grad, b=c_i), 
-        equality=constraint.equality)
+        c=LinearCallable(a=c_i_grad, b=-c_i),
+        equation_type=constraint.equation_type)
 
 # should be done
 def create_iterate_quadratic_problem(
@@ -112,7 +142,7 @@ def create_iterate_quadratic_problem(
         f_grad: np.ndarray, 
         c: np.ndarray, 
         A: np.ndarray, 
-        L_hessian: np.ndarray):
+        L_hessian: np.ndarray) -> QuadraticProblem:
 
     constraints = np.array([transform_sqp_to_linear_constraint(constraint, c_i, c_i_grad) for constraint, c_i, c_i_grad in zip(problem.constraints, c, A)])
     return QuadraticProblem(G=L_hessian, c=f_grad, n=len(f_grad), bias=f_x, constraints=constraints, x0=None, solution=None)
@@ -131,7 +161,7 @@ def kkt_fulfilled(
     
     for l_i, constraint, c_i in zip(lambda_, problem.constraints, c):
         # 12.34b
-        if constraint.equality:
+        if constraint.equation_type == EquationType.EQ:
             if np.any(abs(c_i) > tolerance):
                 return False
         # 12.34c
