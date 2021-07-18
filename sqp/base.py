@@ -12,7 +12,7 @@ MAX_ITER_SQP = 10_000
 # should be done
 def minimize_nonlinear_problem(
         original_problem: MinimizationProblem,
-        eta=0.3, tau=0.99, tolerance=1e-5) -> Tuple[np.ndarray, np.ndarray]:
+        eta=0.3, tau=0.8, tolerance=1e-5) -> Tuple[np.ndarray, np.ndarray]:
 
     # we expect inequalities to be greater-than inequalities
     prepared_constraints = [c.as_ge_if_le() for c in original_problem.constraints]
@@ -90,7 +90,7 @@ def find_mu(
         rho=0.5):
 
     hessian_quadratic_p = p @ L_hessian @ p
-    sigma = 1 if hessian_quadratic_p > 0 else 0
+    sigma = 1 # hardcoded according to algorithm
 
     inequality_18_36 = (f_grad @ p + (sigma/2) * hessian_quadratic_p) / ((1-rho) * c_norm)
     if prev_mu is not None and prev_mu >= inequality_18_36:
