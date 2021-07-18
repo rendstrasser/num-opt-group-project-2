@@ -3,8 +3,9 @@ import pytest
 
 from quadratic.base import minimize_quadratic_problem
 from quadratic.quadratic_problem import QuadraticProblem
+from quadratic.problems import create_exercise_example_16_1, create_another_example, create_example_16_4
 from simplex.base import find_x0
-from shared.constraints import EquationType
+from shared.constraints import EquationType, LinearConstraint, LinearCallable
 
 
 @pytest.fixture
@@ -56,8 +57,30 @@ def sample_ineq_qp(sample_ineq_qp_params) -> QuadraticProblem:
     return QuadraticProblem.from_params(G, c, A, b, equation_type_vec, solution=solution)
 
 
+def test_linearly_dependent_constraints():
+    problem = create_another_example()
+
+    x, _ = minimize_quadratic_problem(problem)
+
+    assert np.all(np.isclose(x, problem.solution))
+
+def test_another_problem():
+    problem = create_example_16_4()
+
+    x, _ = minimize_quadratic_problem(problem)
+
+    assert np.all(np.isclose(x, problem.solution))
+
+def test_exercise_16_1_problem():
+    problem = create_exercise_example_16_1()
+
+    x, _ = minimize_quadratic_problem(problem)
+
+    assert np.all(np.isclose(x, problem.solution))
+
+
 def test_ineq_qp(sample_ineq_qp):
-    x = minimize_quadratic_problem(sample_ineq_qp)
+    x, _ = minimize_quadratic_problem(sample_ineq_qp)
     assert  np.all(np.isclose(x, sample_ineq_qp.solution))
 
 
@@ -76,7 +99,7 @@ def test_no_indefinite_G(sample_qp_params):
 
 
 def test_solve_equality_problem(sample_qp):
-    x = minimize_quadratic_problem(sample_qp)
+    x, _ = minimize_quadratic_problem(sample_qp)
     assert np.all(np.isclose(x, sample_qp.solution))
 
 

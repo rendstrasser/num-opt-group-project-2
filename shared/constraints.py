@@ -76,7 +76,7 @@ class LinearConstraint(Constraint):
             # only inequality constraints can represent a positivity constraint
             return None
 
-        nonzero_indices = np.nonzero(self.c.a)
+        nonzero_indices = np.nonzero(self.c.a)[0]
         expected_non_zero_elem = 1 if self.equation_type == EquationType.GE else -1
 
         if len(nonzero_indices) == 1 and self.c.a[nonzero_indices[0]] == expected_non_zero_elem:
@@ -84,6 +84,13 @@ class LinearConstraint(Constraint):
 
     def equal_callables(self, other: 'Constraint') -> bool:
         return np.all(self.c.a == other.c.a) and self.c.b == other.c.b
+
+    def as_ge_if_le(self) -> 'LinearConstraint':
+        """Return copy of the constraint, such that it is an equality."""
+        if self.equation_type != EquationType.LE:
+            return self
+
+        return LinearConstraint(LinearCallable(a=-self.c.a, b=-self.c.b), equation_type=EquationType.GE)
 
 
 def combine_linear(linear_callables: Sequence[LinearCallable]) -> Tuple[np.ndarray, np.ndarray]:

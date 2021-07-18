@@ -8,7 +8,7 @@ from typing import Callable, Sequence, Tuple
 
 import numpy as np
 
-from shared.constraints import EquationType, LinearConstraint, LinearCallable
+from shared.constraints import EquationType, LinearConstraint, LinearCallable, combine_linear
 from shared.minimization_problem import LinearConstraintsProblem, StandardizingMetaInfo
 
 
@@ -87,9 +87,11 @@ class LinearProblem(LinearConstraintsProblem):
         # standardize constraints (but not entire problem, as not necessary)
         if not standardized:
             standardized_constraints, standardizing_meta_info = problem.standardized_constraints()
+            _, b = combine_linear([c.c for c in standardized_constraints])
         else:
             standardized_constraints = problem.constraints
             standardizing_meta_info = StandardizingMetaInfo.from_pre_standardized(problem)
+            b = problem.b
 
         # n of standardized constraints problem
         n = standardizing_meta_info.calc_standardized_n()
@@ -99,10 +101,9 @@ class LinearProblem(LinearConstraintsProblem):
         e_z = np.ones(shape=m)
         e = np.concatenate((e_x, e_z))
 
-
         x0 = np.zeros(n)
         # we dont need to look at standardized b as abs(b) will be same even after standardizing
-        z0 = np.abs(problem.b)
+        z0 = np.abs(b)
         xz0 = np.concatenate((x0, z0))
 
         constraints = []
