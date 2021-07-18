@@ -10,11 +10,11 @@ from sqp.problems import create_example_18_3_problem
 
 
 def test_qp_as_sqp_solved():
-    pytest.skip()
-
     problem = create_exercise_example_16_1()
 
     x, _ = minimize_nonlinear_problem(problem)
+
+    assert (np.allclose(x, problem.solution))
 
 def test_example_18_3():
     pytest.skip()
@@ -22,3 +22,5 @@ def test_example_18_3():
     problem = create_example_18_3_problem()
 
     x, _ = minimize_nonlinear_problem(problem)
+
+    assert (np.allclose(x, problem.solution))

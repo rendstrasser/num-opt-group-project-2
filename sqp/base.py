@@ -24,7 +24,6 @@ def minimize_nonlinear_problem(
         x = np.zeros(shape=problem.n)
 
     lambda_ = np.zeros(shape=len(problem.constraints))
-    lambda_[0] = 1
 
     f_x = problem.calc_f_at(x)
     f_grad = problem.calc_gradient_at(x)
