@@ -33,9 +33,10 @@ def create_example_18_3_problem():
 
     return MinimizationProblem(f=f, n=len(solution), constraints=constraints, solution=solution, x0=x0)
 
-def create_convex_in_f_problem():
+
+def create_convex_in_f_problem() -> MinimizationProblem:
     """
-    Example 18.3 from the book
+    Custom example for a problem that is non-linear in the constraints but convex in the objective.
     """
 
     def f(x):
@@ -48,7 +49,7 @@ def create_convex_in_f_problem():
         return (x[0]+x[1])**2
 
     x0 = None
-    solution = np.array((0,0))
+    solution = np.array((0, 0))
     constraints = np.array((Constraint(c1, equation_type=EquationType.LE),
                             Constraint(c2, equation_type=EquationType.EQ)))
 
