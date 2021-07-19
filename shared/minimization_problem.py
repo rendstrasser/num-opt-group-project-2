@@ -95,6 +95,17 @@ class MinimizationProblem:
 
         return hessian_approximation(lagrangian, x)
 
+    def is_feasible(self, x: np.ndarray) -> bool:
+        """Check whether or not point is feasible.
+
+        Args:
+            x: Point to check for
+
+        Returns:
+            bool
+        """
+        return all(c.holds(x) for c in self.constraints)
+
 
 @dataclass
 class StandardizingMetaInfo:
