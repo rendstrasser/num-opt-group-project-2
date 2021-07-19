@@ -78,7 +78,7 @@ def minimize_nonlinear_problem(
         if kkt_fulfilled(problem, x, lambda_, c, tolerance):
             return x, i + 1
 
-    raise TimeoutError(f"SQP ran into timeout with {MAX_ITER_SQP} steps")
+    raise TimeoutError(f"SQP ran into timeout with {max_iter} steps")
 
 
 def solve_quadratic(problem: QuadraticProblem) -> Tuple[np.ndarray, np.ndarray]:
