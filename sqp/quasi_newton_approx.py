@@ -1,15 +1,22 @@
 import numpy as np
+from typing import Optional
 
-# TODO in sqp.ipynb code, such that we can use one of these functions:
-# - need to store previous x
-# - initialize B with np.eye() for the first iteration
+from shared.minimization_problem import MinimizationProblem
 
 
-def damped_bfgs_updating(problem, B, x, x_old, l):
+def damped_bfgs_updating(
+        problem: MinimizationProblem,
+        B: Optional[np.ndarray],
+        x: np.ndarray,
+        x_old: Optional[np.ndarray],
+        l) -> np.ndarray:
     """
     updates hessian according to procedure 18.2
     possibly could behave bad on difficult problems
     """
+
+    if B is None or x_old is None:
+        return np.eye(problem.n)
 
     s = x - x_old  # we would need to store x_old
     L_grad_x = problem.calc_lagrangian_gradient_at(x, l)
@@ -30,11 +37,20 @@ def damped_bfgs_updating(problem, B, x, x_old, l):
     return B_new
 
 
-def sr1(problem, B, x, x_old, l, delta=0.1):
+def sr1(
+        problem: MinimizationProblem,
+        B: Optional[np.ndarray],
+        x: np.ndarray,
+        x_old: Optional[np.ndarray],
+        l: np.ndarray,
+        delta=0.1) -> np.ndarray:
     """
     updates hessian according to SR1 (6.24)
     S1 alone doesn't guarantee positive definiteness: adds multiple of identity to hessian if this case is encountered
     """
+
+    if B is None or x_old is None:
+        return np.eye(problem.n)
 
     s = x - x_old  # we would need to store x_old
     L_grad_x = problem.calc_lagrangian_gradient_at(x, l)

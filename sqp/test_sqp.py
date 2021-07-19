@@ -10,13 +10,14 @@ from sqp.problems import create_example_18_3_problem, create_convex_in_f_problem
 
 
 def test_qp_as_sqp_solved():
-    pytest.skip()
+    # slow, activate on-demand
+    # pytest.skip()
 
     problem = create_exercise_example_16_1()
 
-    x, _ = minimize_nonlinear_problem(problem)
+    x, _ = minimize_nonlinear_problem(problem, max_iter=100_000)
 
-    assert (np.allclose(x, problem.solution))
+    assert (np.allclose(x, problem.solution, atol=1e-1, rtol=1e-1))
 
 def test_convex():
     problem = create_convex_in_f_problem()
@@ -26,10 +27,11 @@ def test_convex():
     assert (np.allclose(x, problem.solution, atol=1e-3, rtol=1e-3))
 
 def test_example_18_3():
-    pytest.skip()
+    # seems to be ill-conditioned for our purpose
+    #pytest.skip()
 
     problem = create_example_18_3_problem()
 
-    x, _ = minimize_nonlinear_problem(problem)
+    x, _ = minimize_nonlinear_problem(problem, max_iter=100)
 
     assert (np.allclose(x, problem.solution))

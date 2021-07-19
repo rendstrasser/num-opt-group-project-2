@@ -7,7 +7,7 @@ from quadratic.quadratic_problem import QuadraticProblem
 from simplex.base import find_x0
 from shared.constraints import combine_linear, EquationType, LinearConstraint, LinearCallable
 
-QP_MAX_ITER: int = 5_000
+QP_MAX_ITER: int = 1_000
 
 
 def minimize_quadratic_problem(original_problem: QuadraticProblem) -> Tuple[np.ndarray, int]:

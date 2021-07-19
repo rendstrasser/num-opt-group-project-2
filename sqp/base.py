@@ -6,13 +6,13 @@ from quadratic.base import minimize_quadratic_problem
 from shared.minimization_problem import MinimizationProblem
 from shared.constraints import Constraint, LinearCallable, LinearConstraint, EquationType, combine_linear
 from quadratic.quadratic_problem import QuadraticProblem
+from sqp.quasi_newton_approx import damped_bfgs_updating, sr1
 
-MAX_ITER_SQP = 10_000
 
 # should be done
 def minimize_nonlinear_problem(
         original_problem: MinimizationProblem,
-        eta=0.3, tau=0.8, tolerance=1e-3) -> Tuple[np.ndarray, int]:
+        eta=0.8, tau=0.8, tolerance=1e-3, max_iter=100_000) -> Tuple[np.ndarray, int]:
 
     # we expect inequalities to be greater-than inequalities
     prepared_constraints = [c.as_ge_if_le() for c in original_problem.constraints]
@@ -32,14 +32,15 @@ def minimize_nonlinear_problem(
     A = problem.calc_constraints_jacobian_at(x)
     mu = None
 
-    # TODO quasi-newton approx 
-    L_hessian = problem.calc_lagrangian_hessian_at(x, lambda_)
+    #B = problem.calc_lagrangian_hessian_at(x, lambda_)
+    B = sr1(problem, None, x, None, lambda_)
 
-    for i in range(MAX_ITER_SQP):
-        quadr_problem = create_iterate_quadratic_problem(problem, f_x, f_grad, c, A, L_hessian)
+    i = 0
+    for i in range(max_iter):
+        quadr_problem = create_iterate_quadratic_problem(problem, f_x, f_grad, c, A, B)
         p, l_hat = solve_quadratic(quadr_problem)
         p_lambda = l_hat - lambda_
-        mu = find_mu(mu, f_grad, p, L_hessian, c_norm)
+        mu = find_mu(mu, f_grad, p, B, c_norm)
 
         merit_at_x = l1_merit(f_x, mu, c_norm)
         dir_gradient_merit = l1_merit_directional_gradient(f_grad, p, mu, c_norm)
@@ -49,12 +50,18 @@ def minimize_nonlinear_problem(
         merit_term = l1_merit(problem.calc_f_at(x + alpha * p), mu, c_norm)
         while merit_term > first_wolfe_condition_term:
             alpha *= tau
+
             c = problem.calc_constraints_at(x + alpha * p)
             c_norm = np.linalg.norm(c, ord=1)
-            merit_term=l1_merit(problem.calc_f_at(x + alpha * p), mu, c_norm)
 
+            merit_term=l1_merit(problem.calc_f_at(x + alpha * p), mu, c_norm)
             first_wolfe_condition_term = merit_at_x + eta * alpha * dir_gradient_merit
 
+            if alpha * np.linalg.norm(p) < 1e-5:
+                # step must not become smaller than precision, early exit to ensure valid a
+                break
+
+        x_prev = np.copy(x)
         x += alpha * p
 
         lambda_ += alpha * p_lambda
@@ -65,8 +72,8 @@ def minimize_nonlinear_problem(
         c_norm = np.linalg.norm(c, ord=1)
         A = problem.calc_constraints_jacobian_at(x)
 
-        # TODO quasi-newton approx 
-        L_hessian = problem.calc_lagrangian_hessian_at(x, lambda_)
+        #B = problem.calc_lagrangian_hessian_at(x, lambda_)
+        B = sr1(problem, B, x, x_prev, lambda_)
 
         if kkt_fulfilled(problem, x, lambda_, c, tolerance):
             return x, i + 1
