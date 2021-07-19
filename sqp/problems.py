@@ -31,4 +31,25 @@ def create_example_18_3_problem():
                             Constraint(c2, equation_type=EquationType.EQ),
                             Constraint(c3, equation_type=EquationType.EQ)))
 
-    return MinimizationProblem(f=f, n=len(x0), constraints=constraints, solution=solution, x0=x0)
+    return MinimizationProblem(f=f, n=len(solution), constraints=constraints, solution=solution, x0=x0)
+
+def create_convex_in_f_problem():
+    """
+    Example 18.3 from the book
+    """
+
+    def f(x):
+        return x[0]**2 + x[1]**2
+
+    def c1(x):
+        return x[0]/(1+x[1]**2)
+
+    def c2(x):
+        return (x[0]+x[1])**2
+
+    x0 = None
+    solution = np.array((0,0))
+    constraints = np.array((Constraint(c1, equation_type=EquationType.LE),
+                            Constraint(c2, equation_type=EquationType.EQ)))
+
+    return MinimizationProblem(f=f, n=len(solution), constraints=constraints, solution=solution, x0=x0)

@@ -12,7 +12,7 @@ MAX_ITER_SQP = 10_000
 # should be done
 def minimize_nonlinear_problem(
         original_problem: MinimizationProblem,
-        eta=0.3, tau=0.8, tolerance=1e-5) -> Tuple[np.ndarray, np.ndarray]:
+        eta=0.3, tau=0.8, tolerance=1e-3) -> Tuple[np.ndarray, int]:
 
     # we expect inequalities to be greater-than inequalities
     prepared_constraints = [c.as_ge_if_le() for c in original_problem.constraints]
@@ -21,7 +21,7 @@ def minimize_nonlinear_problem(
 
     x = problem.x0
     if x is None:
-        x = np.zeros(shape=problem.n)
+        x = np.ones(shape=problem.n)
 
     lambda_ = np.zeros(shape=len(problem.constraints))
 
@@ -69,7 +69,7 @@ def minimize_nonlinear_problem(
         L_hessian = problem.calc_lagrangian_hessian_at(x, lambda_)
 
         if kkt_fulfilled(problem, x, lambda_, c, tolerance):
-            return x, lambda_
+            return x, i + 1
 
     raise TimeoutError(f"SQP ran into timeout with {MAX_ITER_SQP} steps")
 
