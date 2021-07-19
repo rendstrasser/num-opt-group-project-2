@@ -67,7 +67,7 @@ class QuadraticProblem(LinearConstraintsProblem):
                    solution=solution, x0=x0)
 
     @property
-    def is_inequality_constrained(self):
+    def is_inequality_constrained(self) -> bool:
         """Return whether or not any of the imposed constraints are inequalities."""
         return any(constraint.equation_type is not EquationType.EQ
                    for constraint in self.constraints)

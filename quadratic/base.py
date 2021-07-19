@@ -42,6 +42,7 @@ def min_eq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     x = x_lambda[:len(problem.G)]
     return x, 1
 
+
 def min_no_constraint_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     p = np.linalg.solve(problem.G, -problem.c)
     return p, 1
