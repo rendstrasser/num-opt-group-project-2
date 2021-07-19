@@ -5,7 +5,7 @@ from quadratic.base import minimize_quadratic_problem
 from quadratic.quadratic_problem import QuadraticProblem
 from quadratic.problems import create_exercise_example_16_1, create_another_example, create_example_16_4
 from simplex.base import find_x0
-from shared.constraints import EquationType, LinearConstraint, LinearCallable
+from shared.constraints import EquationType
 
 
 @pytest.fixture
@@ -57,31 +57,62 @@ def sample_ineq_qp(sample_ineq_qp_params) -> QuadraticProblem:
     return QuadraticProblem.from_params(G, c, A, b, equation_type_vec, solution=solution)
 
 
-def test_linearly_dependent_constraints():
-    problem = create_another_example()
+@pytest.fixture(params=
+    [
+             create_example_16_4,
+             create_another_example,
+             create_exercise_example_16_1
+    ])
+def other_problem(request):
+    return request.param()
 
-    x, _ = minimize_quadratic_problem(problem)
+class TestPhase1:
 
-    assert np.all(np.isclose(x, problem.solution))
+    def test_phase_1_works_on_qp(self, sample_qp):
+        x = find_x0(sample_qp, standardized=False)
+        assert sample_qp.is_feasible(x)
 
-def test_another_problem():
-    problem = create_example_16_4()
+    def test_phase_1_ineq(self, sample_ineq_qp):
+        x = find_x0(sample_ineq_qp, standardized=False)
+        assert all(constraint.holds(x) for constraint in sample_ineq_qp.constraints)
 
-    x, _ = minimize_quadratic_problem(problem)
+    @pytest.mark.parametrize('initial_guess', [
+        [1, 1],
+        [2, 2],  # Try out multiple starting points.
+        [5, 5],
+        [0, 0]
+    ])
+    def test_with_initial_guess(self, sample_ineq_qp, initial_guess):
+        x = sample_ineq_qp.find_x0(initial_guess=np.array(initial_guess))
+        assert sample_ineq_qp.is_feasible(x)
 
-    assert np.all(np.isclose(x, problem.solution))
-
-def test_exercise_16_1_problem():
-    problem = create_exercise_example_16_1()
-
-    x, _ = minimize_quadratic_problem(problem)
-
-    assert np.all(np.isclose(x, problem.solution))
+    def test_other_problems(self, other_problem):
+        initial_guess = np.random.random(len(other_problem.solution))
+        assert other_problem.is_feasible(other_problem.find_x0(initial_guess))
 
 
-def test_ineq_qp(sample_ineq_qp):
-    x, _ = minimize_quadratic_problem(sample_ineq_qp)
-    assert  np.all(np.isclose(x, sample_ineq_qp.solution))
+class TestSolving:
+
+    def test_linearly_dependent_constraints(self, ):
+        problem = create_another_example()
+
+        x, _ = minimize_quadratic_problem(problem)
+
+        assert np.all(np.isclose(x, problem.solution))
+
+    def test_other_problems(self, other_problem):
+        x, _ = minimize_quadratic_problem(other_problem)
+        assert np.all(np.isclose(x, other_problem.solution))
+
+    def test_solve_equality_problem(self, sample_qp):
+        x, _ = minimize_quadratic_problem(sample_qp)
+        assert np.all(np.isclose(x, sample_qp.solution))
+
+    def test_ineq_qp(self, sample_ineq_qp):
+        x, _ = minimize_quadratic_problem(sample_ineq_qp)
+        assert np.all(np.isclose(x, sample_ineq_qp.solution))
+
+
 
 
 def test_combined_params(sample_qp, sample_qp_params):
@@ -96,17 +127,3 @@ def test_no_indefinite_G(sample_qp_params):
     G = np.diag([1, -1, 1])
     with pytest.raises(ValueError):
         QuadraticProblem.from_params(G, c, A, b)
-
-
-def test_solve_equality_problem(sample_qp):
-    x, _ = minimize_quadratic_problem(sample_qp)
-    assert np.all(np.isclose(x, sample_qp.solution))
-
-
-def test_phase_1_works_on_qp(sample_qp):
-    x = find_x0(sample_qp, standardized=False)
-    assert all(constraint.holds(x) for constraint in sample_qp.constraints)
-
-def test_phase_1_ineq(sample_ineq_qp):
-    x = find_x0(sample_ineq_qp, standardized=False)
-    assert all(constraint.holds(x) for constraint in sample_ineq_qp.constraints)
