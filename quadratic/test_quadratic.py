@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from quadratic.base import minimize_quadratic_problem
-from quadratic.quadratic_problem import QuadraticProblem
 from quadratic.problems import create_exercise_example_16_1, create_another_example, create_example_16_4
-from simplex.base import find_x0
+from quadratic.quadratic_problem import QuadraticProblem
 from shared.constraints import EquationType
+from simplex.base import find_x0
 
 
 @pytest.fixture
@@ -58,13 +58,14 @@ def sample_ineq_qp(sample_ineq_qp_params) -> QuadraticProblem:
 
 
 @pytest.fixture(params=
-    [
-             create_example_16_4,
-             create_another_example,
-             create_exercise_example_16_1
-    ])
+[
+    create_example_16_4,
+    create_another_example,
+    create_exercise_example_16_1
+])
 def other_problem(request):
     return request.param()
+
 
 class TestPhase1:
 
@@ -111,8 +112,6 @@ class TestSolving:
     def test_ineq_qp(self, sample_ineq_qp):
         x, _ = minimize_quadratic_problem(sample_ineq_qp)
         assert np.all(np.isclose(x, sample_ineq_qp.solution))
-
-
 
 
 def test_combined_params(sample_qp, sample_qp_params):
