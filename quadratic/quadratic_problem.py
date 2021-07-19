@@ -76,10 +76,10 @@ class QuadraticProblem(LinearConstraintsProblem):
         """Find initial solution
 
         Args:
-            initial_guess:
+            initial_guess: Point to start from.
 
         Returns:
-
+            np.ndarray - Feasible point.
         """
         if self.x0 is not None:
             return self.x0
