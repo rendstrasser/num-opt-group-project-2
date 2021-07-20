@@ -97,9 +97,7 @@ def create_made_up_problem_2():
 
 
 def create_made_up_problem_3():
-    """
-    demonstrates global convergence for convex problems
-    """
+
     def f(x):
         return (x[0]-2)**2+(x[1]-4)**4+(x[2]+3.3)**6
 
