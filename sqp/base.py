@@ -66,6 +66,10 @@ def minimize_nonlinear_problem(
         # Find alpha for step-length calculation using a line search
         alpha = find_alpha_with_line_search(problem, x, f_x, f_grad, c_norm, mu, p, eta, tau)
 
+        #second stopping criteria: if gradient of merit function is 0 we are in an extremum!
+        if np.linalg.norm(l1_merit_directional_gradient(f_grad, p, mu, c_norm))<=10**-10:
+            return x, i
+
         # Remember current x for SR1 and calculate next x and lambda vector
         x_prev = np.copy(x)
         x += alpha * p

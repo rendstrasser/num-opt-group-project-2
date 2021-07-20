@@ -73,7 +73,9 @@ def create_made_up_problem_1():
     return MinimizationProblem(f=f, n=len(x0), constraints=constraints, solution=solution, x0=x0)
 
 def create_made_up_problem_2():
-
+    """
+    takes a little bit longer to compute, but is solved by the algorithm!
+    """
     def f(x):
         return x[0]**1.1*(x[1])**2
 
@@ -86,7 +88,7 @@ def create_made_up_problem_2():
 
 
     x0 = np.array((1.7,0.5))
-    solution = np.array((10.,-9.5,0))
+    solution = np.array((1.6096558 , 0.36709701))
     constraints = np.array((Constraint(c1, equation_type=EquationType.EQ),
                             Constraint(c2, equation_type=EquationType.EQ)))
 

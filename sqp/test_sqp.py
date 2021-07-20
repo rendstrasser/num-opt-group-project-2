@@ -29,11 +29,11 @@ def test_convex():
 
 def test_example_18_3():
     # seems to be ill-conditioned for our purpose
-    pytest.skip()
+    #pytest.skip()
 
     problem = create_example_18_3_problem()
 
-    x, _ = minimize_nonlinear_problem(problem, max_iter=100)
+    x, _ = minimize_nonlinear_problem(problem, max_iter=1000)
 
     assert (np.allclose(x, problem.solution))
 
@@ -54,3 +54,4 @@ def test_made_up_problem_2():
     print(x)
 
     assert (np.allclose(x, problem.solution,atol=1e-3, rtol=1e-3))
+
