@@ -54,3 +54,22 @@ def create_convex_in_f_problem() -> MinimizationProblem:
                             Constraint(c2, equation_type=EquationType.EQ)))
 
     return MinimizationProblem(f=f, n=len(solution), constraints=constraints, solution=solution, x0=x0)
+
+def create_made_up_problem_1():
+
+    def f(x):
+        return np.e ** (-0.5*(x[0]**2+x[1]**2))+x[2]**2
+
+    def c1(x):
+        return x[0]+x[1]-0.5
+    def c2(x):
+        return x[2]**3+x[0]-10
+
+    x0 = np.array((11.,10.,9.))
+    solution = np.array((10.,-9.5,0))
+    constraints = np.array((Constraint(c1, equation_type=EquationType.EQ),
+                            Constraint(c2, equation_type=EquationType.EQ)))
+
+    return MinimizationProblem(f=f, n=len(x0), constraints=constraints, solution=solution, x0=x0)
+
+
