@@ -75,6 +75,7 @@ def create_made_up_problem_1():
 def create_made_up_problem_2():
     """
     takes a little bit longer to compute, but is solved by the algorithm!
+    shows that we have good local convergence even for non convex problems
     """
     def f(x):
         return x[0]**1.1*(x[1])**2
@@ -94,4 +95,27 @@ def create_made_up_problem_2():
 
     return MinimizationProblem(f=f, n=len(x0), constraints=constraints, solution=solution, x0=x0)
 
+
+def create_made_up_problem_3():
+    """
+    demonstrates global convergence for convex problems
+    """
+    def f(x):
+        return (x[0]-2)**2+(x[1]-4)**4+(x[2]+3.3)**6
+
+
+    def c1(x):
+        return x[1]+x[2]-3
+    def c2(x):
+        return x[0]**2-3
+
+
+
+
+    x0 = np.array((1.,1.,1.))
+    solution = np.array((2, 5.247203969423337074659622658, -2.247203969423337074659622658))
+    constraints = np.array((Constraint(c1, equation_type=EquationType.EQ),
+                            Constraint(c2, equation_type=EquationType.GE)))
+
+    return MinimizationProblem(f=f, n=len(x0), constraints=constraints, solution=solution, x0=x0)
 
