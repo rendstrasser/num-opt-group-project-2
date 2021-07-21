@@ -54,6 +54,11 @@ def minimize_nonlinear_problem(
         c_norm = np.linalg.norm(c, ord=1)
         A = problem.calc_constraints_jacobian_at(x)
 
+        #second stopping criteria: x_k dose not change anymore
+        if x_prev is not None:
+            if np.allclose(x, x_prev, atol=1e-12, rtol=1e-10):
+                return x, i
+
         # approximate the Hessian using SR1
         B = sr1(problem, B=B, x=x, x_old=x_prev, lambda_=lambda_)
 
