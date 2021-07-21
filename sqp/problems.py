@@ -103,9 +103,9 @@ def create_made_up_problem_3():
 
 
     def c1(x):
-        return x[1]+x[2]-3
+        return (x[1]+x[2]-3)
     def c2(x):
-        return x[0]**2-3
+        return (x[0]**2-3)
 
 
 
@@ -116,4 +116,3 @@ def create_made_up_problem_3():
                             Constraint(c2, equation_type=EquationType.GE)))
 
     return MinimizationProblem(f=f, n=len(x0), constraints=constraints, solution=solution, x0=x0)
-

@@ -20,7 +20,7 @@ def test_qp_as_sqp_solved():
     assert (np.allclose(x, problem.solution, atol=1e-1, rtol=1e-1))
 
 def test_convex():
-    pytest.skip()
+    #pytest.skip()
     problem = create_convex_in_f_problem()
 
     x, iter_count = minimize_nonlinear_problem(problem)
@@ -29,7 +29,7 @@ def test_convex():
 
 def test_example_18_3():
     # seems to be ill-conditioned for our purpose
-    #pytest.skip()
+    pytest.skip()
 
     problem = create_example_18_3_problem()
 
@@ -63,3 +63,4 @@ def test_made_up_problem_3():
 
 
     assert (np.allclose(x, problem.solution, atol=1e-3, rtol=1e-3))
+
