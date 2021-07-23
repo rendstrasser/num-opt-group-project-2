@@ -16,7 +16,7 @@ from shared.minimization_problem import LinearConstraintsProblem, StandardizingM
 class LinearProblem(LinearConstraintsProblem):
     """
     Linear problem as described in the book at 13.1.
-    Constraints don't explicitly contain the x >= 0 case.
+    When standardized, constraints don't explicitly contain the x >= 0 case.
     """
     f: Callable[[np.ndarray], float] = field(init=False)
     c: np.ndarray
@@ -81,7 +81,20 @@ class LinearProblem(LinearConstraintsProblem):
             solution=None), standardizing_meta_info
 
     @classmethod
-    def phase_I_problem_from(cls, problem: LinearConstraintsProblem, standardized: bool) -> Tuple[LinearProblem, StandardizingMetaInfo]:
+    def phase_I_problem_from(cls,
+                             problem: LinearConstraintsProblem,
+                             standardized: bool) -> Tuple[LinearProblem, StandardizingMetaInfo]:
+        """
+        Creates the Phase I problem which is required for starting the Simplex method if no x0 is given explicitly.
+
+        Args:
+            problem: Original problem we want to minimize
+            standardized: Setting that tells us if the problem is already in standardized form (13.41).
+
+        Returns:
+            Tuple containing the constructed phase 1 problem and some standardizing meta info that can be used
+            to destandardize the solution that is found.
+        """
         # standardize constraints (but not entire problem, as not necessary)
         if not standardized:
             standardized_constraints, standardizing_meta_info = problem.standardized_constraints()

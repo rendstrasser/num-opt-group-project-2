@@ -45,31 +45,39 @@ class MinimizationProblem:
         return [c.as_equality() if as_equalities else c for c in self.constraints if c.is_active(x)]
 
     def calc_f_at(self, x: np.ndarray) -> float:
+        """Returns the function value at the point x."""
         return self.f(x)
 
     def calc_gradient_at(self, x: np.ndarray) -> np.ndarray:
+        """Returns the approximated gradient of the function at the point x."""
         return gradient_approximation(self.f, x)
 
     def calc_hessian_at(self, x: np.ndarray) -> np.ndarray:
+        """Returns the approximated Hessian of the function at the point x."""
         return hessian_approximation(self.f, x)
 
     # --- Constraint methods ---
 
     def calc_constraints_at(self, x: np.ndarray) -> np.ndarray:
+        """Returns the constraint function values at the point x."""
         return np.array([c(x) for c in self.constraints])
 
     def calc_constraint_at(self, i: int, x: np.ndarray) -> float:
+        """Returns the constraint function value of constraint i at the point x."""
         return self.constraints[i](x)
 
     def calc_constraints_jacobian_at(self, x: np.ndarray) -> np.ndarray:
+        """Returns the constraints approximated Jacobian at the point x."""
         return np.array([gradient_approximation(c.c, x) for c in self.constraints])
 
     def calc_constraint_gradient_at(self, i: int, x: np.ndarray) -> np.ndarray:
+        """Returns the approximated gradient values of constraint i at the point x."""
         return gradient_approximation(self.constraints[i], x)
 
     # --- Lagrangian methods ---
 
     def calc_lagrangian_at(self, x, lambda_) -> float:
+        """Returns the lagrangian function value at the point x."""
         assert len(lambda_) == len(self.constraints)
 
         result = self.calc_f_at(x)
@@ -79,16 +87,16 @@ class MinimizationProblem:
 
         return result
 
-    # gradient wrt x
     def calc_lagrangian_gradient_at(self, x, lambda_) -> np.ndarray:
+        """Returns the approximated lagrangian gradient with regard to x at the point x."""
 
         def lagrangian(x_):
             return self.calc_lagrangian_at(x_, lambda_)
 
         return gradient_approximation(lagrangian, x)
 
-    # hessian wrt x
     def calc_lagrangian_hessian_at(self, x, lambda_) -> np.ndarray:
+        """Returns the approximated lagrangian Hessian with regard to x at the point x."""
 
         def lagrangian(x_):
             return self.calc_lagrangian_at(x_, lambda_)

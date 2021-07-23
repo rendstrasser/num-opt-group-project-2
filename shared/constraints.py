@@ -1,5 +1,5 @@
 """
-File containing Implementations of basic constraints and their methods.
+File containing implementations of basic constraints and their methods.
 """
 
 from copy import copy
@@ -20,6 +20,14 @@ class EquationType(Enum):
 
 @dataclass
 class Constraint:
+    """
+    Holds data about a single, possibly non-linear, constraint.
+
+    Args:
+        c: Callable, that gives the function value of the constraint at a point x.
+            The constraint callable is expected to be in the form s.t. the right-hand side is 0.
+        equation_type: Defines which operator/sign is in the middle of the equation.
+    """
     c: Callable[[np.ndarray], float]
     equation_type: EquationType
 
@@ -27,10 +35,17 @@ class Constraint:
         return self.c(x)
 
     def holds(self, x: np.ndarray) -> bool:
+        """
+        Check whether the constraint holds at the point x.
+
+        Args:
+            x: Point to evaluate the constraint at.
+        """
         return self.equation_type.value(self.c(x), 0)
 
     def is_active(self, x: np.ndarray) -> bool:
-        """Check whether the constraint is active at point x, i.e. if c(x) == 0.
+        """
+        Check whether the constraint is active at point x, i.e. if c(x) == 0.
 
         Args:
             x: Point to evaluate the constraint at.
@@ -63,6 +78,7 @@ class LinearCallable:
 
 @dataclass
 class LinearConstraint(Constraint):
+    """Specific constraint to keep a and b within the LinearCallable to the outside accessible."""
     c: LinearCallable
 
     def positivity_constraint_idx(self) -> Optional[int]:
@@ -89,7 +105,9 @@ class LinearConstraint(Constraint):
         if len(nonzero_indices) == 1 and self.c.a[nonzero_indices[0]] == expected_non_zero_elem:
             return nonzero_indices[0]
 
-    def equal_callables(self, other: 'Constraint') -> bool:
+    def equal_callables(self, other: 'LinearConstraint') -> bool:
+        """Returns True, if the given constraint is equal to this instance in terms of the callables.
+        The equation type does not need to match."""
         return np.all(self.c.a == other.c.a) and self.c.b == other.c.b
 
     def as_ge_if_le(self) -> 'LinearConstraint':

@@ -1,3 +1,6 @@
+"""
+Utility methods for approximating gradients and the Hessian.
+"""
 from typing import Callable
 
 import numpy as np
