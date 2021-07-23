@@ -1,4 +1,3 @@
-
 import numpy as np
 from typing import Tuple, Optional
 
@@ -7,6 +6,7 @@ from shared.minimization_problem import MinimizationProblem
 from shared.constraints import Constraint, LinearCallable, LinearConstraint, EquationType, combine_linear
 from quadratic.quadratic_problem import QuadraticProblem
 from sqp.quasi_newton_approx import sr1
+from sqp.sub_problem_structures import SqpIterateQuadraticProblem
 
 # precision constant
 _epsilon = np.sqrt(np.finfo(float).eps)
@@ -65,7 +65,7 @@ def minimize_nonlinear_problem(
         c_norm = np.linalg.norm(constraint_values, ord=1)
         A = problem.calc_constraints_jacobian_at(x)
 
-        #second stopping criteria: x_k dose not change anymore
+        # second stopping criteria: x_k dose not change anymore
         if x_prev is not None:
             if np.allclose(x, x_prev, atol=1e-12, rtol=1e-10):
                 return x, i
@@ -74,7 +74,10 @@ def minimize_nonlinear_problem(
         B = sr1(problem, B=B, x=x, x_old=x_prev, lambda_=lambda_)
 
         # Create and solve quadratic sub-problem
-        quadr_problem = create_iterate_quadratic_problem(problem, f_x, f_grad, constraint_values, A, B)
+        quadr_problem = SqpIterateQuadraticProblem(G=B, c=f_grad,
+                                                   original_constraints=problem.constraints,
+                                                   original_constraint_values=constraint_values,
+                                                   original_constraint_jacobian=A)
         p, l_hat = solve_quadratic_sub_problem(quadr_problem)
         p_lambda = l_hat - lambda_
         mu = find_mu(mu, f_grad, p, B, c_norm)
@@ -82,8 +85,8 @@ def minimize_nonlinear_problem(
         # Find alpha for step-length calculation using a line search
         alpha = find_alpha_with_line_search(problem, x, f_x, f_grad, c_norm, mu, p, eta, tau)
 
-        #second stopping criteria: if gradient of merit function is 0 we are in an extremum!
-        if np.linalg.norm(l1_merit_directional_gradient(f_grad, p, mu, c_norm))<=10**-10:
+        # second stopping criteria: if gradient of merit function is 0 we are in an extremum!
+        if np.linalg.norm(l1_merit_directional_gradient(f_grad, p, mu, c_norm)) <= 10 ** -10:
             return x, i
 
         # Remember current x for SR1 and calculate next x and lambda vector
@@ -216,10 +219,10 @@ def solve_quadratic_sub_problem(problem: QuadraticProblem) -> Tuple[np.ndarray, 
 
 def find_mu(
         prev_mu: Optional[float],
-        f_grad: np.ndarray, 
-        p: np.ndarray, 
+        f_grad: np.ndarray,
+        p: np.ndarray,
         B: np.ndarray,
-        c_norm: float, 
+        c_norm: float,
         rho=0.5) -> float:
     """
     Find mu as described in 18.36 with sigma=1 (as required by algorithm 18.3)
@@ -239,7 +242,7 @@ def find_mu(
     hessian_quadratic_p = p @ B @ p
     sigma = 1  # hardcoded according to algorithm
 
-    inequality_18_36 = (f_grad @ p + (sigma/2) * hessian_quadratic_p) / ((1-rho) * c_norm)
+    inequality_18_36 = (f_grad @ p + (sigma / 2) * hessian_quadratic_p) / ((1 - rho) * c_norm)
 
     # if previous mu fulfills the inequality, use it
     if prev_mu is not None and prev_mu >= inequality_18_36:
@@ -250,8 +253,8 @@ def find_mu(
 
 
 def l1_merit(
-        f_x: float, 
-        mu: float, 
+        f_x: float,
+        mu: float,
         c_norm: float) -> float:
     """
     Calculates the merit function at x.
@@ -268,9 +271,9 @@ def l1_merit(
 
 
 def l1_merit_directional_gradient(
-        f_grad: np.ndarray, 
-        p: np.ndarray, 
-        mu: float, 
+        f_grad: np.ndarray,
+        p: np.ndarray,
+        mu: float,
         c_norm: float) -> float:
     """
     Calculates the directional gradient of the merit function wrt p at x.
@@ -326,7 +329,7 @@ def find_lambda_of_qp(
 
 
 def transform_sqp_to_linear_constraint(
-        constraint: Constraint, 
+        constraint: Constraint,
         constraint_value: float,
         constraint_grad: np.ndarray) -> LinearConstraint:
     """
@@ -346,38 +349,10 @@ def transform_sqp_to_linear_constraint(
         equation_type=constraint.equation_type)
 
 
-def create_iterate_quadratic_problem(
-        problem: MinimizationProblem, 
-        f_x: float, 
-        f_grad: np.ndarray, 
-        constraint_values: np.ndarray,
-        A: np.ndarray, 
-        B: np.ndarray) -> QuadraticProblem:
-    """
-    Creates the quadratic sub-problem for solving an iteration of SQP (18.11).
-
-    Args:
-        problem: Problem that we want to minimize
-        f_x: Function value at current iterate x
-        f_grad: Derivative of function value at current iterate x
-        constraint_values: Values of all constraints c_i(x) at current iterate x
-        A: Jacobian of constraints at current iterate x
-        B: Lagrange function Hessian or approximation of Hessian at x
-
-    Returns:
-        New quadratic problem representing 18.11.
-    """
-
-    constraints = np.array([transform_sqp_to_linear_constraint(constraint, c_i, c_i_grad)
-                            for constraint, c_i, c_i_grad in zip(problem.constraints, constraint_values, A)])
-
-    return QuadraticProblem(G=B, c=f_grad, n=len(f_grad), bias=f_x, constraints=constraints, x0=None, solution=None)
-
-
 def kkt_fulfilled(
-        problem: MinimizationProblem, 
-        x: np.ndarray, 
-        lambda_: np.ndarray, 
+        problem: MinimizationProblem,
+        x: np.ndarray,
+        lambda_: np.ndarray,
         constraint_values: np.ndarray,
         tolerance=1e-5) -> bool:
     """
@@ -398,7 +373,7 @@ def kkt_fulfilled(
     # 12.34d
     if np.any(lambda_ + tolerance < 0):
         return False
-    
+
     for lambda_i, constraint_i, constraint_value_i in zip(lambda_, problem.constraints, constraint_values):
         # 12.34b
         if constraint_i.equation_type == EquationType.EQ:
@@ -412,7 +387,7 @@ def kkt_fulfilled(
         # 12.34e
         if np.any(abs(lambda_i * constraint_value_i) > tolerance):
             return False
-        
+
     l_gradient = problem.calc_lagrangian_gradient_at(x, lambda_)
 
     # 12.34a
