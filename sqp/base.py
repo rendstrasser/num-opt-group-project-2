@@ -8,6 +8,14 @@ from shared.constraints import Constraint, LinearCallable, LinearConstraint, Equ
 from quadratic.quadratic_problem import QuadraticProblem
 from sqp.quasi_newton_approx import sr1
 
+# precision constant
+_epsilon = np.sqrt(np.finfo(float).eps)
+
+# defines the minimum step sizes in terms of the norm of the direction
+# mainly to avoid extremely slow convergence for showcase purpose
+# can also be replaced by _epsilon if slow convergence is not an issue
+MIN_BACKTRACKING_STEP_NORM_SIZE = 1e-5
+
 
 def minimize_nonlinear_problem(
         original_problem: MinimizationProblem,
@@ -19,7 +27,10 @@ def minimize_nonlinear_problem(
         original_problem: Problem that we want to minimize
         eta: As in 18.3 - used to dampen the influence of the directional gradient in the line search
         tau: As in 18.3 - multiplied with alpha in the line search when step-size condition is not yet fulfilled
-        tolerance: Tolerance of how close our solution needs to be in terms of the KKT-conditions
+        tolerance: Tolerance of how close our solution needs to be in terms of the KKT-conditions.
+                That is, for conditions 12.34b-e, the KKT-conditions are checked elementwise to
+                the granularity of the tolerance and for 12.34a, we check the L2-norm of the Lagrangian gradient
+                to be smaller than the tolerance.
         max_iter: Maximum amount of iterations before a TimeoutError will be thrown
 
     Returns:
@@ -42,16 +53,16 @@ def minimize_nonlinear_problem(
 
     for i in range(max_iter):
         # Calculate all the terms needed for the stopping criterion check
-        c = problem.calc_constraints_at(x)
+        constraint_values = problem.calc_constraints_at(x)
 
         # check stopping-condition (KKT conditions fulfilled)
-        if kkt_fulfilled(problem, x, lambda_, c, tolerance):
+        if kkt_fulfilled(problem, x, lambda_, constraint_values, tolerance):
             return x, i
 
         # calculate all the other terms needed for this iteration
         f_x = problem.calc_f_at(x)
         f_grad = problem.calc_gradient_at(x)
-        c_norm = np.linalg.norm(c, ord=1)
+        c_norm = np.linalg.norm(constraint_values, ord=1)
         A = problem.calc_constraints_jacobian_at(x)
 
         #second stopping criteria: x_k dose not change anymore
@@ -63,7 +74,7 @@ def minimize_nonlinear_problem(
         B = sr1(problem, B=B, x=x, x_old=x_prev, lambda_=lambda_)
 
         # Create and solve quadratic sub-problem
-        quadr_problem = create_iterate_quadratic_problem(problem, f_x, f_grad, c, A, B)
+        quadr_problem = create_iterate_quadratic_problem(problem, f_x, f_grad, constraint_values, A, B)
         p, l_hat = solve_quadratic_sub_problem(quadr_problem)
         p_lambda = l_hat - lambda_
         mu = find_mu(mu, f_grad, p, B, c_norm)
@@ -121,7 +132,7 @@ def find_alpha_with_line_search(
     while not merit_wolfe_condition_satisfied(problem, x, alpha, p, mu, merit_at_x, dir_gradient_merit_at_x, eta):
         alpha *= tau
 
-        if alpha * np.linalg.norm(p) < 1e-5:
+        if alpha * np.linalg.norm(p) < MIN_BACKTRACKING_STEP_NORM_SIZE:
             # step must not become smaller than precision, early exit to ensure valid alpha
             # note: we use 1e-5 which is a lot bigger than our precision; this is to encourage faster convergence
             # for non-convex problems with low-tolerance needs (e.g. 1e-3)
@@ -295,7 +306,7 @@ def find_lambda_of_qp(
     lambda_ = np.zeros(len(problem.constraints))
 
     # find all active constraints at the current point
-    active_constraint_mask = np.array([c.as_equality().holds(x_solution) for c in problem.constraints])
+    active_constraint_mask = np.array([c.is_active(x_solution) for c in problem.constraints])
     if np.all(~active_constraint_mask):
         # no active constraints, early exit with lambda=0
         return lambda_
@@ -306,7 +317,7 @@ def find_lambda_of_qp(
     # calculate constraint jacobian for active constraints
     # note: slicing will work as constraints are always numpy arrays
     # noinspection PyTypeChecker
-    A, _ = combine_linear([c.c for c in problem.constraints[active_constraint_mask]])
+    A, _ = combine_linear([c.c for c in problem.active_set_at(x_solution, as_equalities=False)])
 
     # solve linear system Ax=g which effectively ensures KKT-condition 12.34a
     lambda_[active_constraint_mask] = np.linalg.lstsq(A.T, g)[0]
@@ -316,22 +327,22 @@ def find_lambda_of_qp(
 
 def transform_sqp_to_linear_constraint(
         constraint: Constraint, 
-        c_i: float, 
-        c_i_grad: np.ndarray) -> LinearConstraint:
+        constraint_value: float,
+        constraint_grad: np.ndarray) -> LinearConstraint:
     """
     Creates a linear constraint for a quadratic sub-problem based on a non-linear constraint (see 18.11).
 
     Args:
         constraint: Original non-linear constraint
-        c_i: Value of constraint at x
-        c_i_grad: Value of derivative of constraint at x
+        constraint_value: Value of constraint at x
+        constraint_grad: Value of derivative of constraint at x
 
     Returns:
         Linear constraint for quadratic sub-problem
     """
 
     return LinearConstraint(
-        c=LinearCallable(a=c_i_grad, b=-c_i),
+        c=LinearCallable(a=constraint_grad, b=-constraint_value),
         equation_type=constraint.equation_type)
 
 
@@ -339,7 +350,7 @@ def create_iterate_quadratic_problem(
         problem: MinimizationProblem, 
         f_x: float, 
         f_grad: np.ndarray, 
-        c: np.ndarray, 
+        constraint_values: np.ndarray,
         A: np.ndarray, 
         B: np.ndarray) -> QuadraticProblem:
     """
@@ -349,7 +360,7 @@ def create_iterate_quadratic_problem(
         problem: Problem that we want to minimize
         f_x: Function value at current iterate x
         f_grad: Derivative of function value at current iterate x
-        c: Values of all constraints c_i(x) at current iterate x
+        constraint_values: Values of all constraints c_i(x) at current iterate x
         A: Jacobian of constraints at current iterate x
         B: Lagrange function Hessian or approximation of Hessian at x
 
@@ -358,7 +369,7 @@ def create_iterate_quadratic_problem(
     """
 
     constraints = np.array([transform_sqp_to_linear_constraint(constraint, c_i, c_i_grad)
-                            for constraint, c_i, c_i_grad in zip(problem.constraints, c, A)])
+                            for constraint, c_i, c_i_grad in zip(problem.constraints, constraint_values, A)])
 
     return QuadraticProblem(G=B, c=f_grad, n=len(f_grad), bias=f_x, constraints=constraints, x0=None, solution=None)
 
@@ -367,7 +378,7 @@ def kkt_fulfilled(
         problem: MinimizationProblem, 
         x: np.ndarray, 
         lambda_: np.ndarray, 
-        c: np.ndarray, 
+        constraint_values: np.ndarray,
         tolerance=1e-5) -> bool:
     """
     Checks all the KKT-conditions (12.34) and if they are sufficiently close to the tolerance,
@@ -377,7 +388,7 @@ def kkt_fulfilled(
         problem: Problem that we want to minimize
         x: Current approximated minimizer x
         lambda_: Current approximated lambda vector (Lagrange multipliers)
-        c: Constraint values at current iterate x
+        constraint_values: Constraint values at current iterate x
         tolerance: Tolerance of how close our solution needs to be in terms of the KKT-conditions
 
     Returns:
@@ -388,18 +399,18 @@ def kkt_fulfilled(
     if np.any(lambda_ + tolerance < 0):
         return False
     
-    for l_i, constraint, c_i in zip(lambda_, problem.constraints, c):
+    for lambda_i, constraint_i, constraint_value_i in zip(lambda_, problem.constraints, constraint_values):
         # 12.34b
-        if constraint.equation_type == EquationType.EQ:
-            if np.any(abs(c_i) > tolerance):
+        if constraint_i.equation_type == EquationType.EQ:
+            if np.any(abs(constraint_value_i) > tolerance):
                 return False
         # 12.34c
         else:
-            if np.any(c_i + tolerance < 0):
+            if np.any(constraint_value_i + tolerance < 0):
                 return False
 
         # 12.34e
-        if np.any(abs(l_i * c_i) > tolerance):
+        if np.any(abs(lambda_i * constraint_value_i) > tolerance):
             return False
         
     l_gradient = problem.calc_lagrangian_gradient_at(x, lambda_)
