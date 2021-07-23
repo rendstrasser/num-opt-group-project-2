@@ -20,11 +20,10 @@ class LinearProblem(LinearConstraintsProblem):
     """
     f: Callable[[np.ndarray], float] = field(init=False)
     c: np.ndarray
-    bias: float = 0
 
     def __post_init__(self):
         super(LinearProblem, self).__post_init__()
-        self.f = lambda x: self.c @ x + self.bias
+        self.f = lambda x: self.c @ x
 
     @classmethod
     def from_positive_constrained_params(cls, 
@@ -32,8 +31,7 @@ class LinearProblem(LinearConstraintsProblem):
             n: int, 
             constraints: Sequence[LinearConstraint], 
             solution: np.ndarray = None, 
-            x0: np.ndarray = None,
-            bias: float = 0):
+            x0: np.ndarray = None):
         """
         Creates a linear problem based on the given params.
         It is assumed that 'constraints' does not explicitly contain positivity constraints, e.g. x_4 >= 0.
@@ -45,11 +43,11 @@ class LinearProblem(LinearConstraintsProblem):
             e = np.eye(n)[i]
 
             incl_positivity_constraints = np.append(incl_positivity_constraints,
-                                                    LinearConstraint(
+                LinearConstraint(
                     c=LinearCallable(a=e, b=0),
                     equation_type=EquationType.GE))
 
-        return LinearProblem(n=n, constraints=incl_positivity_constraints, x0=x0, solution=solution, c=c, bias=bias)
+        return LinearProblem(n=n, constraints=incl_positivity_constraints, x0=x0, solution=solution, c=c)
 
     def to_standard_form(self) -> Tuple[LinearProblem, StandardizingMetaInfo]:
         """
