@@ -37,11 +37,18 @@ class Constraint:
         """
         return self(x) == 0
 
-    def as_equality(self) -> 'LinearConstraint':
+    def as_equality(self) -> 'Constraint':
         """Return copy of the constraint, such that it is an equality."""
         new_constraint = copy(self)
         new_constraint.equation_type = EquationType.EQ
         return new_constraint
+
+    def as_ge_if_le(self) -> 'Constraint':
+        """Return copy of the constraint, such that it is a greater-than-inequality."""
+        if self.equation_type == EquationType.LE:
+            return Constraint(c=lambda x: -self.c(x), equation_type=EquationType.GE)
+
+        return self
 
 
 @dataclass
