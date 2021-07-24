@@ -103,14 +103,3 @@ def LU_factorization(A: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
         U[i + 1:] -= factor[:, np.newaxis] * U[i]
 
     return L, U, p
-
-
-# TODO: change to actual unit test
-if __name__ == "__main__":
-    for _ in range(10):
-        shape = np.random.randint(low=3, high=7, size=2)
-        A = np.random.uniform(low=2, high=16, size=shape)
-        Q, R = qr_factorization_householder(A)
-
-        # ensure that QR factorization works
-        assert np.allclose(A, Q @ R)

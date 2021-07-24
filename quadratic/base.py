@@ -11,7 +11,7 @@ from shared.solve_linear_system import solve_positive_definite
 QP_MAX_ITER: int = 1_000
 
 
-def minimize_quadratic_problem(original_problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
+def minimize_quadratic_problem(original_problem: QuadraticProblem, use_nullspace_method=False) -> Tuple[np.ndarray, int]:
     """Compute minimizer of quadratic problem."""
 
     # we expect inequalities to be greater-than inequalities
@@ -19,10 +19,11 @@ def minimize_quadratic_problem(original_problem: QuadraticProblem) -> Tuple[np.n
     problem = QuadraticProblem(G=original_problem.G, c=original_problem.c, n=original_problem.n, x0=original_problem.x0,
                                solution=original_problem.solution, constraints=prepared_constraints)
 
-    return min_ineq_qp(problem) if problem.is_inequality_constrained else min_eq_qp(problem)
+    return min_ineq_qp(problem, use_nullspace_method) if problem.is_inequality_constrained \
+        else min_eq_qp(problem, None, False)
 
 
-def min_eq_qp(problem: QuadraticProblem, x = None) -> Tuple[np.ndarray, int]:
+def min_eq_qp(problem: QuadraticProblem, x, use_nullspace_method = False) -> Tuple[np.ndarray, int]:
     """Compute minimizer of equality constrained problem,
     by solving (16.4).
 
@@ -32,17 +33,15 @@ def min_eq_qp(problem: QuadraticProblem, x = None) -> Tuple[np.ndarray, int]:
     Returns:
         Minimizer x_star, which is the solution to (16.4) and iteration count (hardcoded to 1 here).
     """
-
     if len(problem.constraints) == 0:
         return min_no_constraint_qp(problem)
 
-    use_schur = False
-    if use_schur or x is None:
+    if use_nullspace_method:
+        x = solve_kkt_nullspace(problem, x)
+    else:
         kkt_solution = np.block([-problem.c, problem.b])
         x_lambda = solve_kkt_schur(problem, kkt_solution)
         x = x_lambda[:len(problem.G)]
-    else:
-        x = solve_kkt_nullspace(problem, x)
 
     return x, 1
 
@@ -58,7 +57,7 @@ def transform_working_set_to_eq_constraints(working_set: Sequence[LinearConstrai
         equation_type=c.equation_type) for c in working_set]
 
 
-def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
+def min_ineq_qp(problem: QuadraticProblem, use_nullspace_method=False) -> Tuple[np.ndarray, int]:
     x = find_x0(problem, standardized=False)
 
     # we start with an empty working set to ensure linear independence in the constraints from here on
@@ -75,7 +74,7 @@ def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
             constraints=transform_working_set_to_eq_constraints(working_set),
             n=len(G), solution=None, x0=None
         )
-        p, _ = min_eq_qp(subproblem, x)
+        p, _ = min_eq_qp(subproblem, x, use_nullspace_method)
 
         if np.allclose(p, np.zeros_like(p)):
             if len(working_set) == 0:
@@ -217,35 +216,3 @@ def solve_kkt_nullspace(problem: QuadraticProblem, x):
     p = Y @ p_y + Z @ p_z   # equation (16.17)
 
     return p + x    # equation (16.6)
-
-
-if __name__ == "__main__":
-
-    # Example (16.2), p472
-    G = np.array([
-        [6, 2, 1],
-        [2, 5, 2],
-        [1, 2, 4]
-    ])
-
-    A = np.array([
-        [1, 0, 1],
-        [0, 1, 1]
-    ])
-
-    b = np.array([3, 0])
-    c = np.array([-8, -3, -3])
-    x_sol = np.array([2, -1, 1])
-    lambda_min = np.array([3, -2])
-
-    x0 = np.array([0, 0, 0])    # Example (16.3), p477
-
-    problem = QuadraticProblem.from_params(
-        G=G, c=c, A=A, b=b,
-        equation_type_vec=np.repeat(EquationType.EQ, 2),
-        solution=x_sol, x0=x0
-    )
-
-    x_min, _ = min_eq_qp(problem, x0)
-    assert np.allclose(x_min, x_sol)
-
