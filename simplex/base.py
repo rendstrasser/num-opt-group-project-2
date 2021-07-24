@@ -110,7 +110,6 @@ def find_x0(problem: LinearConstraintsProblem, standardized: bool):
     z0 = xz0[n:]
 
     if np.any(np.absolute(z0) > 1e-4):
-        # no solution!
         raise ValueError("Problem has no solution!")
 
     x0 = standardizing_meta_info.destandardize_x(x0)

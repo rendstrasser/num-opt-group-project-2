@@ -16,7 +16,7 @@ def create_exercise_example_16_1():
         LinearConstraint(LinearCallable(a=a3, b=3), equation_type=EquationType.LE)
     ])
 
-    solution = np.array([1/6,-10/6], dtype=np.float64)
+    solution = np.array([1/6, -10/6], dtype=np.float64)
 
     return QuadraticProblem(G=G, c=c, n=2, constraints=constraints, x0=None, solution=solution)
 

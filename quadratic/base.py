@@ -42,6 +42,7 @@ def min_eq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     x = x_lambda[:len(problem.G)]
     return x, 1
 
+
 def min_no_constraint_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     p = np.linalg.solve(problem.G, -problem.c)
     return p, 1
@@ -77,7 +78,7 @@ def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
                 lambda_vec = np.empty(shape=0)
             else:
                 A, _ = combine_linear([eq.c for eq in working_set])
-                lambda_vec = np.linalg.lstsq(A.T, g)[0]
+                lambda_vec = np.linalg.lstsq(A.T, g, rcond=-1)[0]
 
                 # in the working set we transformed all constraints into equalities, but we want to check for inequalities
                 current_set = [constr for constr in problem.constraints if
