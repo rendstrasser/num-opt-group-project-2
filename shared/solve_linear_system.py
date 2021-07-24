@@ -64,32 +64,6 @@ def LU_factorization(A: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
         L[i + 1:, i] = factor
         U[i + 1:] -= factor[:, np.newaxis] * U[i]
 
-    # old code which isn't that compact
-    """# pivot matrix
-    p = pivoting(A)
-
-    L = np.eye(A, dtype=np.float64)
-    U = np.zeros_like(A, dtype=np.float64)
-    PA = np.matmul(p, A)
-
-    for i in range(n):
-        # calculate U
-        for j in range(i,n):
-            s = 0
-            for k in range(i):
-                s += L[i, k] * U[k, j]
-            U[i, j] = PA[i, j] - s
-
-        # calculate L
-        for j in range(i, n):
-            if j == i:
-                L[i, j] = 1
-            else:
-                s = 0
-                for k in range(i):
-                    s += L[j, k] * U[k, i]
-                L[j, i] = (PA[j, i] - s) / U[i, i]"""
-
     return L, U, p
 
 
