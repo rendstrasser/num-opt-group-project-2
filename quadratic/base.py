@@ -135,6 +135,34 @@ def compute_alpha_and_blocking_constraints(
     return alpha, blocking_constraint
 
 
+def get_kkt_inv(problem: QuadraticProblem):
+    """Return inverse of KKT-matrix as defined in 16.16.
+
+    Args:
+        problem: QuadraticProblem to compute the inverse KKT-matrix
+
+    Returns:
+        np.ndarray: inverse of KKT-matrix
+    """
+
+    A = problem.A
+    G = problem.G
+
+    G_inv = np.linalg.inv(G)
+    AGAT = np.linalg.inv(A @ G_inv @ A.T)
+
+    C = G_inv - G_inv @ A.T @ AGAT @ A @ G_inv
+    E = G_inv @ A.T @ AGAT
+    F = - AGAT
+
+    kkt_inv = np.block([
+        [C, E],
+        [E.T, F]
+    ])
+
+    return kkt_inv
+
+
 def solve_kkt_schur(problem: QuadraticProblem, kkt_solution: np.ndarray):
     """Computes solution to KKT-matrix equation using the Schur-complement method (page 455) using the inverse
     of the KKT-Matrix (16.16)
@@ -147,34 +175,40 @@ def solve_kkt_schur(problem: QuadraticProblem, kkt_solution: np.ndarray):
         np.ndarray: solution to Ax=b where A is the KKT-matrix and b the KKT-solution
     """
 
-    def get_kkt_inv(problem: QuadraticProblem):
-        """Return inverse of KKT-matrix as defined in 16.16.
-
-        Args:
-            problem: QuadraticProblem to compute the inverse KKT-matrix
-
-        Returns:
-            np.ndarray: inverse of KKT-matrix
-        """
-
-        A = problem.A
-        G = problem.G
-
-        G_inv = np.linalg.inv(G)
-        AGAT = np.linalg.inv(A @ G_inv @ A.T)
-
-        C = G_inv - G_inv @ A.T @ AGAT @ A @ G_inv
-        E = G_inv @ A.T @ AGAT
-        F = - AGAT
-
-        kkt_inv = np.block([
-            [C, E],
-            [E.T, F]
-        ])
-
-        return kkt_inv
-
     kkt_inv = get_kkt_inv(problem)
     x_lambda = kkt_inv @ kkt_solution
 
     return x_lambda
+
+
+def solve_kkt_nullspace(problem: QuadraticProblem, kkt_solution: np.ndarray, x):  # TODO: change function
+    """Computes solution to KKT matrix equation using the null-space method (page 457)
+
+    Args:
+        problem: QuadraticProblem to compute solution for
+        kkt_solution: np.ndarray "b" in Ax=b
+
+    Returns:
+        np.ndarray: solution to the quadratic problem
+    """
+
+    A = problem.A
+    G = problem.G
+
+    m, n = A.shape
+
+    # get matrices Y and Z
+    Q, _ = qr_factorization_householder(A.T)
+    Y = Q[:, :m]
+    Z = Q[:, m:]
+
+    # TODO: calculate
+    h = A @ x - kkt_solution  # TODO: isnt kkt_solution == problem.solution?
+    g = problem.c + G @ x
+
+    p_y = np.linalg.inv(A @ Y) @ (-h)  # equation (16.18)
+    p_z = np.linalg.inv(Z.T @ G @ Z) @ (-Z.T @ G @ Y @ p_y - Z.T @ g)  # equation (16.19)
+    p = np.concatenate(p_y, p_z)
+
+    x_min = x - p
+    return x_min
