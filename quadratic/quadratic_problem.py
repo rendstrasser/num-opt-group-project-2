@@ -36,8 +36,12 @@ class QuadraticProblem(LinearConstraintsProblem):
         self.f = lambda x: 1 / 2 * x @ self.G @ x + x @ self.c
 
     @classmethod
-    def from_params(cls, G: np.ndarray, c: np.ndarray, A: np.ndarray,
-                    b: np.ndarray, equation_type_vec: Sequence[bool] = None,
+    def from_params(cls,
+                    G: np.ndarray,
+                    c: np.ndarray,
+                    A: np.ndarray,
+                    b: np.ndarray,
+                    equation_type_vec: Sequence[bool] = None,
                     solution: np.ndarray = None,
                     x0: float = None) -> 'QuadraticProblem':
         """
@@ -83,12 +87,12 @@ class QuadraticProblem(LinearConstraintsProblem):
         if initial_guess is None:
             return find_x0(self, standardized=False)
 
-        z = np.array([self.compute_z_i(x=initial_guess, constraint=constraint)
+        z = np.array([self._compute_z_i(x=initial_guess, constraint=constraint)
                       for constraint in self.constraints])
 
         e = np.concatenate([np.zeros(len(initial_guess)), np.ones(len(z))])
 
-        gamma = np.array([self.compute_gamma_i(x=initial_guess, constraint=constraint)
+        gamma = np.array([self._compute_gamma_i(x=initial_guess, constraint=constraint)
                           for constraint in self.constraints])
 
         # We bring this into a sort of standard form by having the gammas
@@ -122,7 +126,7 @@ class QuadraticProblem(LinearConstraintsProblem):
         return solution[:len(initial_guess)]
 
     @staticmethod
-    def compute_gamma_i(x: np.ndarray, constraint: LinearConstraint) -> float:
+    def _compute_gamma_i(x: np.ndarray, constraint: LinearConstraint) -> float:
         """Compute entry of gamma for the warm start method on page 473.
 
         Args:
@@ -136,7 +140,7 @@ class QuadraticProblem(LinearConstraintsProblem):
             return 1
 
     @staticmethod
-    def compute_z_i(x: np.ndarray, constraint: LinearConstraint) -> float:
+    def _compute_z_i(x: np.ndarray, constraint: LinearConstraint) -> float:
         """Compute entry of z for the warm start method on page 473.
 
         Args:

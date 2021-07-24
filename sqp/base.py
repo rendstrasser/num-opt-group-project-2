@@ -50,6 +50,7 @@ def minimize_nonlinear_problem(
     B = None
     x_prev = None
     mu = None
+    p = None
 
     for i in range(max_iter):
         # Calculate all the terms needed for the stopping criterion check
