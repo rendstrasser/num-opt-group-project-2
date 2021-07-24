@@ -50,7 +50,6 @@ def LU_factorization(A: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
             j = 0
             while A[i:n, i][max_idxs[j]] == 0:
                 if j == (len(max_idxs) - 1):
-                    print(A[i:n, i])
                     raise ValueError("PLU factorization isn't possible as there is a column with only 0 entries.")
                 j += 1
 
