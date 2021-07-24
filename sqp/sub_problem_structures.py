@@ -17,6 +17,7 @@ class SqpIterateQuadraticProblem(QuadraticProblem):
         original_constraints: Constraint instances from original problem
         original_constraint_values: Values of all constraints c_i(x) at current iterate x
         original_constraints_jacobian: Jacobian of constraints at current iterate x
+        initial_guess: Point assumed to be close to a feasible region.
 """
 
     n: int = field(init=False)
@@ -27,6 +28,8 @@ class SqpIterateQuadraticProblem(QuadraticProblem):
     original_constraints: Sequence[Constraint]
     original_constraint_values: np.ndarray
     original_constraint_jacobian: np.ndarray
+
+    initial_guess: np.ndarray = None
 
     def __post_init__(self):
         self.n = len(self.c)
@@ -39,6 +42,12 @@ class SqpIterateQuadraticProblem(QuadraticProblem):
                                         self.original_constraint_jacobian)])
 
         self.x0 = None
+
+        try:
+            self.x0 = self.find_x0(self.initial_guess)
+        except np.linalg.LinAlgError:
+            pass
+
         self.solution = None
 
         super(QuadraticProblem, self).__post_init__()

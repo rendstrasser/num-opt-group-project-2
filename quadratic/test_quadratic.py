@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from dataclasses import asdict
+
 from quadratic.base import minimize_quadratic_problem
 from quadratic.problems import create_exercise_example_16_1, create_another_example, create_example_16_4
 from quadratic.quadratic_problem import QuadraticProblem

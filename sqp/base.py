@@ -75,7 +75,9 @@ def minimize_nonlinear_problem(
         B = sr1(problem, B=B, x=x, x_old=x_prev, lambda_=lambda_)
 
         # Create and solve quadratic sub-problem
-        quadr_problem = SqpIterateQuadraticProblem(G=B, c=f_grad,
+        quadr_problem = SqpIterateQuadraticProblem(initial_guess=p,
+                                                   G=B,
+                                                   c=f_grad,
                                                    original_constraints=problem.constraints,
                                                    original_constraint_values=constraint_values,
                                                    original_constraint_jacobian=A)
