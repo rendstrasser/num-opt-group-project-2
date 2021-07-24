@@ -43,7 +43,7 @@ class QuadraticProblem(LinearConstraintsProblem):
                     b: np.ndarray,
                     equation_type_vec: Sequence[bool] = None,
                     solution: np.ndarray = None,
-                    x0: float = None) -> 'QuadraticProblem':
+                    x0: np.ndarray = None) -> 'QuadraticProblem':
         """
         Alternative constructor to return a quadratic problem from different params.
 
@@ -84,6 +84,7 @@ class QuadraticProblem(LinearConstraintsProblem):
         """
         if self.x0 is not None:
             return self.x0
+
         if initial_guess is None:
             return find_x0(self, standardized=False)
 
