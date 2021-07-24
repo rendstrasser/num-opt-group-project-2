@@ -1,4 +1,3 @@
-
 from typing import Tuple, List, Sequence, Optional
 
 import numpy as np
@@ -6,6 +5,7 @@ import numpy as np
 from quadratic.quadratic_problem import QuadraticProblem
 from simplex.base import find_x0
 from shared.constraints import combine_linear, EquationType, LinearConstraint, LinearCallable
+from shared.factorizations import qr_factorization_householder
 
 QP_MAX_ITER: int = 1_000
 
@@ -42,6 +42,7 @@ def min_eq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     x = x_lambda[:len(problem.G)]
     return x, 1
 
+
 def min_no_constraint_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     p = np.linalg.solve(problem.G, -problem.c)
     return p, 1
@@ -64,7 +65,7 @@ def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
 
     for i in range(QP_MAX_ITER):
         # Solve subproblem.
-        g = G@x + c
+        g = G @ x + c
         subproblem = QuadraticProblem(
             G=G, c=g,
             constraints=transform_working_set_to_eq_constraints(working_set),
@@ -93,9 +94,9 @@ def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
         else:
             # blocking constraints are all constraints of the problem that are not in the working set
             non_working_set_constraints = [constr for constr in problem.constraints if not
-                                    np.any([constr.equal_callables(working_constr) for working_constr in working_set])]
+            np.any([constr.equal_callables(working_constr) for working_constr in working_set])]
             alpha, blocking_constraint = compute_alpha_and_blocking_constraints(non_working_set_constraints, p, x)
-            x += alpha*p
+            x += alpha * p
             if blocking_constraint is not None:
                 working_set.append(blocking_constraint)
 
@@ -127,7 +128,7 @@ def compute_alpha_and_blocking_constraints(
     for i, (b_i, a_i) in enumerate(zip(b, A)):
         ap = np.inner(a_i, p)
         if ap < 0:
-            blocking_term = (b_i - np.inner(a_i, x))/np.inner(a_i, p)
+            blocking_term = (b_i - np.inner(a_i, x)) / np.inner(a_i, p)
             if blocking_term < alpha:
                 blocking_constraint = non_working_set_constraints[i]
                 alpha = blocking_term
