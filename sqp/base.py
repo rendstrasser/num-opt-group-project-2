@@ -41,10 +41,10 @@ def minimize_nonlinear_problem(
     problem = standardize_problem(original_problem)
 
     # Define x0 and lambda0
-    x = problem.x0
+    x = np.ones(shape=problem.n)
     lambda_ = np.zeros(shape=len(problem.constraints))
-    if x is None:
-        x = np.ones(shape=problem.n)
+    if problem.x0 is not None:
+        x = np.copy(problem.x0)
 
     # initialize to avoid errors when used for the first iteration
     B = None
@@ -326,7 +326,7 @@ def find_lambda_of_qp(
     A, _ = combine_linear([c.c for c in problem.active_set_at(x_solution, as_equalities=False)])
 
     # solve linear system Ax=g which effectively ensures KKT-condition 12.34a
-    lambda_[active_constraint_mask] = np.linalg.lstsq(A.T, g)[0]
+    lambda_[active_constraint_mask] = np.linalg.lstsq(A.T, g, rcond=-1)[0]
 
     return lambda_
 
