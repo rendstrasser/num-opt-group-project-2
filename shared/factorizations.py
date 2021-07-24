@@ -25,7 +25,9 @@ def qr_factorization_householder(A):
         x = A_small[:, 0]  # select column vector of A
         alpha = np.abs(norm(x))
         u = x - alpha * np.identity(m - k)[0, :]
-        v = u / norm(u)
+
+        u_norm = norm(u)
+        v = u / u_norm if u_norm > 0 else u
 
         Q_small = np.identity(m - k) - 2 * np.outer(v, v)
 

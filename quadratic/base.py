@@ -6,6 +6,7 @@ from quadratic.quadratic_problem import QuadraticProblem
 from simplex.base import find_x0
 from shared.constraints import combine_linear, EquationType, LinearConstraint, LinearCallable
 from shared.factorizations import qr_factorization_householder
+from shared.solve_linear_system import solve_positive_definite
 
 QP_MAX_ITER: int = 1_000
 
@@ -21,7 +22,7 @@ def minimize_quadratic_problem(original_problem: QuadraticProblem) -> Tuple[np.n
     return min_ineq_qp(problem) if problem.is_inequality_constrained else min_eq_qp(problem)
 
 
-def min_eq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
+def min_eq_qp(problem: QuadraticProblem, x = None) -> Tuple[np.ndarray, int]:
     """Compute minimizer of equality constrained problem,
     by solving (16.4).
 
@@ -35,11 +36,14 @@ def min_eq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
     if len(problem.constraints) == 0:
         return min_no_constraint_qp(problem)
 
-    kkt_solution = np.block([-problem.c, problem.b])
+    use_schur = False
+    if use_schur or x is None:
+        kkt_solution = np.block([-problem.c, problem.b])
+        x_lambda = solve_kkt_schur(problem, kkt_solution)
+        x = x_lambda[:len(problem.G)]
+    else:
+        x = solve_kkt_nullspace(problem, x)
 
-    x_lambda = solve_kkt_schur(problem, kkt_solution)
-
-    x = x_lambda[:len(problem.G)]
     return x, 1
 
 
@@ -71,7 +75,7 @@ def min_ineq_qp(problem: QuadraticProblem) -> Tuple[np.ndarray, int]:
             constraints=transform_working_set_to_eq_constraints(working_set),
             n=len(G), solution=None, x0=None
         )
-        p, _ = min_eq_qp(subproblem)
+        p, _ = min_eq_qp(subproblem, x)
 
         if np.allclose(p, np.zeros_like(p)):
             if len(working_set) == 0:
@@ -182,7 +186,7 @@ def solve_kkt_schur(problem: QuadraticProblem, kkt_solution: np.ndarray):
     return x_lambda
 
 
-def solve_kkt_nullspace(problem: QuadraticProblem, kkt_solution: np.ndarray, x):  # TODO: change function
+def solve_kkt_nullspace(problem: QuadraticProblem, x):
     """Computes solution to KKT matrix equation using the null-space method (page 457)
 
     Args:
@@ -198,18 +202,50 @@ def solve_kkt_nullspace(problem: QuadraticProblem, kkt_solution: np.ndarray, x):
 
     m, n = A.shape
 
-    # get matrices Y and Z
+    # perform QR-factorization to retrieve Y and Z matrices
     Q, _ = qr_factorization_householder(A.T)
+
+    # split up Q into Q1 and Q2, which by equation (15.22) are Y and Z
     Y = Q[:, :m]
     Z = Q[:, m:]
 
-    # TODO: calculate
-    h = A @ x - kkt_solution  # TODO: isnt kkt_solution == problem.solution?
-    g = problem.c + G @ x
+    g = G @ x + problem.c
+    h = A @ x - problem.b
 
     p_y = np.linalg.inv(A @ Y) @ (-h)  # equation (16.18)
-    p_z = np.linalg.inv(Z.T @ G @ Z) @ (-Z.T @ G @ Y @ p_y - Z.T @ g)  # equation (16.19)
-    p = np.concatenate(p_y, p_z)
+    p_z = solve_positive_definite(Z.T @ G @ Z, -Z.T @ G @ Y @ p_y - Z.T @ g)    # equation (16.19)
+    p = Y @ p_y + Z @ p_z   # equation (16.17)
 
-    x_min = x - p
-    return x_min
+    return p + x    # equation (16.6)
+
+
+if __name__ == "__main__":
+
+    # Example (16.2), p472
+    G = np.array([
+        [6, 2, 1],
+        [2, 5, 2],
+        [1, 2, 4]
+    ])
+
+    A = np.array([
+        [1, 0, 1],
+        [0, 1, 1]
+    ])
+
+    b = np.array([3, 0])
+    c = np.array([-8, -3, -3])
+    x_sol = np.array([2, -1, 1])
+    lambda_min = np.array([3, -2])
+
+    x0 = np.array([0, 0, 0])    # Example (16.3), p477
+
+    problem = QuadraticProblem.from_params(
+        G=G, c=c, A=A, b=b,
+        equation_type_vec=np.repeat(EquationType.EQ, 2),
+        solution=x_sol, x0=x0
+    )
+
+    x_min, _ = min_eq_qp(problem, x0)
+    assert np.allclose(x_min, x_sol)
+
