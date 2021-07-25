@@ -4,6 +4,9 @@ from shared.constraints import LinearConstraint, LinearCallable, EquationType
 from quadratic.quadratic_problem import QuadraticProblem
 
 def create_exercise_example_16_1():
+    """
+    Exercise example 16.1 from the book.
+    """
     G = np.array([[8, 2], [2, 2]])
     c = np.array([2, 3])
 
@@ -21,6 +24,9 @@ def create_exercise_example_16_1():
     return QuadraticProblem(G=G, c=c, n=2, constraints=constraints, x0=None, solution=solution)
 
 def create_example_16_4():
+    """
+    Example 16.4 from the book.
+    """
     G = np.array([[2, 0], [0, 2]])
     c = np.array([-2, -5])
 
@@ -42,6 +48,9 @@ def create_example_16_4():
     return QuadraticProblem(G=G, c=c, n=2, constraints=constraints, x0=None, solution=solution)
 
 def create_another_example():
+    """
+    Custom example for a quadratic problem.
+    """
     G = np.array([[2, 0], [0, 2]])
     c = np.array([-4, -4])
 
