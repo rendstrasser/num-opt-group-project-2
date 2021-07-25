@@ -1,8 +1,9 @@
 import numpy as np
 from numpy.linalg import norm, LinAlgError
+from typing import Tuple
 
 
-def qr_factorization_householder(A):
+def qr_factorization_householder(A: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Performs the QR factorization via the Householder transformation in O(n^3)
     see e.g. https://en.wikipedia.org/wiki/QR_decomposition#Using_Householder_reflections
@@ -40,11 +41,16 @@ def qr_factorization_householder(A):
     return Q, A
 
 
-def cholesky_factorization(A):
+def cholesky_factorization(A: np.ndarray) -> np.ndarray:
     """
-    factorizes input matrix in lower triangular matrix, requires the matrix to be symmetric and positive definite
-    :param A: has to me a square matrix
-    :return: lower triangular matrix
+    Performs the Cholesky factorization to get the lower triangular matrix.
+    Requires the matrix to be symmetric and positive definite.
+
+    Args:
+        A: square, positive-definite matrix
+
+    Returns:
+        lower triangular matrix
     """
     assert A.shape[0] == A.shape[1]
 
@@ -63,13 +69,17 @@ def cholesky_factorization(A):
     return L
 
 
-def LU_factorization(A: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
+def LU_factorization(A: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    factorizes a square matrix, matrix does not have to be symmetric or positive definite
-    use as A = p @ L @ U
-    :param A: matrix to decompose
-    :return: lower matrix L, upper matrix U, permutation matrix p
+    Performs the PLU-factorization on a square matrix, matrix does not have to be symmetric or positive definite.
+
+    Args:
+        A: square matrix to decompose
+
+    Returns:
+        lower matrix L, upper matrix U, permutation matrix p
     """
+
     assert A.shape[0] == A.shape[1]  # requires square matrix
 
     n = A.shape[0]

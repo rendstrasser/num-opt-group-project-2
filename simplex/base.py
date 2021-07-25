@@ -1,3 +1,6 @@
+"""
+Implementation of the Simplex method.
+"""
 import numpy as np
 from typing import Tuple
 
@@ -8,8 +11,14 @@ from shared.minimization_problem import LinearConstraintsProblem, StandardizingM
 
 def minimize_linear_problem(original_problem: LinearProblem, standardized=False) -> Tuple[np.ndarray, int]:
     """
-    Minimizes the given linear problem. Supports auto-standardizing when 'standardized=False', otherwise
-    expects a standardized problem input.
+    Performs the Simplex algorithm (Procedure 13.1) to solve a linear problem.
+
+    Args:
+        original_problem: The problem we want to solve.
+        standardized: Setting that tells us if the problem is already in standardized form (13.41)
+
+    Returns:
+        Tuple of minimizer x and the number of iterations it took to find the minimizer.
     """
 
     # standardize problem if not yet standardized
@@ -88,7 +97,18 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
         i += 1
 
 
-def find_x0(problem: LinearConstraintsProblem, standardized: bool):
+def find_x0(problem: LinearConstraintsProblem, standardized: bool) -> np.ndarray:
+    """
+    Performs 'Starting the Simplex method' via the Phase I approach to find a feasible starting point x0.
+
+     Args:
+        problem: The problem we want to solve.
+        standardized: Setting that tells us if the problem is already in standardized form (13.41)
+
+    Returns:
+        Feasible starting point x0
+    """
+
     if problem.x0 is not None:
         return problem.x0
 

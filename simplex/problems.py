@@ -4,6 +4,9 @@ import numpy as np
 from simplex.linear_problem import LinearProblem, LinearCallable, LinearConstraint
 
 def create_example_13_1_problem():
+    """
+    Example 13.1 from the book.
+    """
     c = np.array([-4, -2, 0, 0], dtype=np.float64)
 
     a1 = np.array([1, 1, 1, 0], dtype=np.float64)

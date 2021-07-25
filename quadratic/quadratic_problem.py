@@ -20,7 +20,7 @@ class QuadraticProblem(LinearConstraintsProblem):
     Attributes:
         f (Callable): Is the function as defined in the book,
         c (np.ndarray): is a vector of weights,
-        G (np.ndarray): is a non-indefinite matrix,
+        G (np.ndarray): is a positive-definite matrix,
         constraints (Sequence[LinearConstraint]): is a collection of linear constraints, which can contain inequalities
     """
     f: Callable[[np.ndarray], float] = field(init=False)
@@ -30,7 +30,7 @@ class QuadraticProblem(LinearConstraintsProblem):
     def __post_init__(self):
         super(QuadraticProblem, self).__post_init__()
 
-        if np.any(np.linalg.eigvals(self.G) + 1e-5 < 0):
+        if np.any(np.linalg.eigvals(self.G) + 1e-5 <= 0):
             raise ValueError("Non-positive-definite matrices not supported.")
 
         self.f = lambda x: 1 / 2 * x @ self.G @ x + x @ self.c
