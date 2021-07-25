@@ -1,6 +1,6 @@
 import numpy as np
 
-def final_printout(x_0, x_optimal, x_appr, iter_count, f, grad, tolerance=1e-7, **kwargs):
+def final_printout(x_0, x_optimal, x_appr, iter_count, f, grad, tolerance=1e-3, **kwargs):
     """
     Copy of the printout function from project 1, but slightly modified to better suit project 2.
 
