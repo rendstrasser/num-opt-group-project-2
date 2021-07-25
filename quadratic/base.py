@@ -3,7 +3,6 @@ from typing import Tuple, List, Sequence, Optional
 import numpy as np
 
 from quadratic.quadratic_problem import QuadraticProblem
-from simplex.base import find_x0
 from shared.constraints import combine_linear, EquationType, LinearConstraint, LinearCallable
 from shared.factorizations import qr_factorization_householder
 from shared.solve_linear_system import solve_positive_definite
@@ -91,7 +90,7 @@ def min_ineq_qp(problem: QuadraticProblem, use_nullspace_method=False) -> Tuple[
     Returns:
         Minimizer x_star, which is the solution to (16.4) and iteration count (hardcoded to 1 here).
     """
-    x = find_x0(problem, standardized=False)
+    x = problem.find_x0()
 
     # we start with an empty working set to ensure linear independence in the constraints from here on
     working_set = []

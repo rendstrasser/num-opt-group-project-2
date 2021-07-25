@@ -19,7 +19,7 @@ MIN_BACKTRACKING_STEP_NORM_SIZE = 1e-5
 
 def minimize_nonlinear_problem(
         original_problem: MinimizationProblem,
-        eta=0.8, tau=0.8, tolerance=1e-3, max_iter=100_000) -> Tuple[np.ndarray, int]:
+        eta=0.8, tau=0.8, tolerance=1e-4, max_iter=100_000) -> Tuple[np.ndarray, int]:
     """
     Performs the Line Search SQP Algorithm (18.3) to solve a non-linear constrained problem.
 

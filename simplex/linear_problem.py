@@ -81,9 +81,7 @@ class LinearProblem(LinearConstraintsProblem):
             solution=None), standardizing_meta_info
 
     @classmethod
-    def phase_I_problem_from(cls,
-                             problem: LinearConstraintsProblem,
-                             standardized: bool) -> Tuple[LinearProblem, StandardizingMetaInfo]:
+    def phase_I_problem_from(cls, problem: LinearConstraintsProblem) -> LinearProblem:
         """
         Creates the Phase I problem which is required for starting the Simplex method if no x0 is given explicitly.
 
@@ -95,18 +93,8 @@ class LinearProblem(LinearConstraintsProblem):
             Tuple containing the constructed phase 1 problem and some standardizing meta info that can be used
             to destandardize the solution that is found.
         """
-        # standardize constraints (but not entire problem, as not necessary)
-        if not standardized:
-            standardized_constraints, standardizing_meta_info = problem.standardized_constraints()
-            _, b = combine_linear([c.c for c in standardized_constraints])
-        else:
-            standardized_constraints = problem.constraints
-            standardizing_meta_info = StandardizingMetaInfo.from_pre_standardized(problem)
-            b = problem.b
-
-        # n of standardized constraints problem
-        n = standardizing_meta_info.calc_standardized_n()
-        m = len(standardized_constraints)
+        n = problem.n
+        m = len(problem.constraints)
 
         e_x = np.zeros(shape=n)
         e_z = np.ones(shape=m)
@@ -114,11 +102,11 @@ class LinearProblem(LinearConstraintsProblem):
 
         x0 = np.zeros(n)
         # we dont need to look at standardized b as abs(b) will be same even after standardizing
-        z0 = np.abs(b)
+        z0 = np.abs(problem.b)
         xz0 = np.concatenate((x0, z0))
 
         constraints = []
-        for i, constraint in enumerate(standardized_constraints):
+        for i, constraint in enumerate(problem.constraints):
             E_i = np.eye(m)[i]
             if constraint.c.b < 0:
                 E_i = -E_i
@@ -131,5 +119,5 @@ class LinearProblem(LinearConstraintsProblem):
                 c=LinearCallable(a=a, b=constraint.c.b),
                 equation_type=constraint.equation_type))
 
-        return LinearProblem(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None), standardizing_meta_info
+        return LinearProblem(c=e, constraints=constraints, x0=xz0, n=n+m, solution=None)
 

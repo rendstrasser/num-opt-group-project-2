@@ -1,10 +1,6 @@
 import pytest
 
-from simplex.linear_problem import *
 from quadratic.quadratic_problem import *
-from quadratic.base import minimize_quadratic_problem
-
-from simplex.base import find_x0
 
 
 def test_standard_form_positive_constraints_assumed():
