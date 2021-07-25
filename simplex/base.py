@@ -31,7 +31,7 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
     m = len(problem.b) # number of constraints -> size of basis
     
     # starting the simplex method
-    x0 = find_x0(problem, True)
+    x0 = find_x0(problem)
 
     # the basis consists of x0 elements which are not 0. all others should be 0
     x0_args_sorted = np.argsort(x0)
@@ -97,7 +97,7 @@ def minimize_linear_problem(original_problem: LinearProblem, standardized=False)
         i += 1
 
 
-def find_x0(problem: LinearConstraintsProblem, standardized: bool) -> np.ndarray:
+def find_x0(problem: LinearConstraintsProblem) -> np.ndarray:
     """
     Performs 'Starting the Simplex method' via the Phase I approach to find a feasible starting point x0.
 
@@ -114,9 +114,9 @@ def find_x0(problem: LinearConstraintsProblem, standardized: bool) -> np.ndarray
 
     # Phase I approach, if no x0 is given
 
-    phase_I_problem, standardizing_meta_info = LinearProblem.phase_I_problem_from(problem, standardized)
+    phase_I_problem = LinearProblem.phase_I_problem_from(problem)
 
-    n = standardizing_meta_info.calc_standardized_n()  # n of standardized constraints problem
+    n = problem.n
     xz0, _ = minimize_linear_problem(phase_I_problem, standardized=True)
 
     x0 = xz0[:n]
@@ -125,6 +125,4 @@ def find_x0(problem: LinearConstraintsProblem, standardized: bool) -> np.ndarray
     if np.any(np.absolute(z0) > 1e-4):
         raise ValueError("Problem has no solution!")
 
-    x0 = standardizing_meta_info.destandardize_x(x0)
-    
     return x0

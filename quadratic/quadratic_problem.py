@@ -9,7 +9,7 @@ import numpy as np
 
 from shared.constraints import LinearConstraint, LinearCallable, EquationType
 from shared.minimization_problem import LinearConstraintsProblem
-from simplex.base import find_x0, minimize_linear_problem
+from simplex.base import minimize_linear_problem
 from simplex.linear_problem import LinearProblem
 
 
@@ -30,6 +30,7 @@ class QuadraticProblem(LinearConstraintsProblem):
     def __post_init__(self):
         super(QuadraticProblem, self).__post_init__()
 
+        # +1e-5 because of approximation errors
         if np.any(np.linalg.eigvals(self.G) + 1e-5 <= 0):
             raise ValueError("Non-positive-definite matrices not supported.")
 
@@ -73,58 +74,56 @@ class QuadraticProblem(LinearConstraintsProblem):
         return any(constraint.equation_type is not EquationType.EQ
                    for constraint in self.constraints)
 
-    def find_x0(self, initial_guess: np.ndarray = None) -> np.ndarray:
+    def find_x0(self, original_initial_guess: np.ndarray = None) -> np.ndarray:
         """Find initial solution
 
         Args:
-            initial_guess: Point to start from.
+            original_initial_guess: Point to start from.
 
         Returns:
             np.ndarray - Feasible point.
         """
+
         if self.x0 is not None:
             return self.x0
 
-        if initial_guess is None:
-            return find_x0(self, standardized=False)
+        standardized_constraints, standardizing_meta_info = self.standardized_constraints()
+        standardized_n = standardizing_meta_info.calc_standardized_n()
+
+        initial_guess = np.zeros(standardized_n)
+        if original_initial_guess is not None:
+            initial_guess[:self.n] = original_initial_guess
 
         z = np.array([self._compute_z_i(x=initial_guess, constraint=constraint)
-                      for constraint in self.constraints])
+                      for constraint in standardized_constraints])
 
         e = np.concatenate([np.zeros(len(initial_guess)), np.ones(len(z))])
 
         gamma = np.array([self._compute_gamma_i(x=initial_guess, constraint=constraint)
-                          for constraint in self.constraints])
+                          for constraint in standardized_constraints])
 
         # We bring this into a sort of standard form by having the gammas
         # being unit-vectors, quasi.
-        constraints = [LinearConstraint(c=LinearCallable(
+        sub_constraints = [LinearConstraint(c=LinearCallable(
             a=np.concatenate([constraint.c.a, unit_vector * gamma_i]),
             b=constraint.c.b),
             equation_type=constraint.equation_type
         )
             for constraint, unit_vector, gamma_i
-            in zip(self.constraints, np.eye(len(self.constraints)), gamma)]
+            in zip(standardized_constraints, np.eye(len(standardized_constraints)), gamma)]
 
         x0 = np.concatenate([initial_guess, z])
 
-        identity = np.eye(len(x0))
-
-        # Add positivity constraints for z.
-        constraints += [LinearConstraint(c=LinearCallable(
-            a=unit_vector,
-            b=0),
-            equation_type=EquationType.GE)
-            for unit_vector in identity[len(initial_guess):]]
-
-        sub_problem = LinearProblem(constraints=constraints,
+        sub_problem = LinearProblem(constraints=sub_constraints,
                                     x0=x0,
                                     solution=None,
                                     c=e, n=len(x0))
 
-        solution, _ = minimize_linear_problem(sub_problem, standardized=False)
+        solution, _ = minimize_linear_problem(sub_problem, standardized=True)
+        n = standardizing_meta_info.calc_standardized_n()
+        x0 = solution[:n]
 
-        return solution[:len(initial_guess)]
+        return standardizing_meta_info.destandardize_x(x0)
 
     @staticmethod
     def _compute_gamma_i(x: np.ndarray, constraint: LinearConstraint) -> float:
@@ -136,7 +135,12 @@ class QuadraticProblem(LinearConstraintsProblem):
         """
         a, b = constraint.c.a, constraint.c.b
         if constraint.equation_type == EquationType.EQ:
-            return -np.sign(np.inner(a, x) - b)
+            sign = -np.sign(np.inner(a, x) - b)
+            if sign == 0:
+                # hardcode to 1, also fine and consistent with basic phase I problem
+                sign = 1
+
+            return sign
         else:
             return 1
 

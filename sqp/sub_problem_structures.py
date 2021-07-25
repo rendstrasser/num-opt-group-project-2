@@ -46,6 +46,18 @@ class SqpIterateQuadraticProblem(QuadraticProblem):
         try:
             self.x0 = self.find_x0(self.initial_guess)
         except np.linalg.LinAlgError:
+            # We use the Simplex method to solve x0
+
+            # Sometimes it happens that we have an initial guess that results in a x0 within the phase I problem
+            # that does not fulfill the requirements such that we can generate a proper basis, which consists
+            # only of m linearly indep. in A indices and all other indices are 0 in x0. This results in singularity
+            # errors.
+
+            # We also can't use QP to solve this initial guess phase I problem, because G would need to be the 0-matrix,
+            # which is not positive-definite, which also results in singularity errors.
+
+            # Therefore, in this case, we fall back to no x0 in the quadratic problem, which effectively causes
+            # us to search for an x0 with the original phase 1 method of Simplex, which is for sure well-defined.
             pass
 
         self.solution = None
